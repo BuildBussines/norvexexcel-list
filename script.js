@@ -1,4 +1,4 @@
-(function() {
+        (function() {
             'use strict';
 
             // ──── SUPABASE CONFIGURATION ────
@@ -8,6 +8,8 @@
             
             let supabase;
             let supabaseConnected = false;
+            let currentUser = null;   // the signed-in Supabase Auth user; every cloud save is tagged with this
+            let authMode = 'signin';  // 'signin' | 'signup'
 
             // ──── PUBLIC SHARING STATE ────
             let lobbyTab = 'mine'; // 'mine' | 'public'
@@ -74,6 +76,16 @@
 
             const lobbyScreen = $('#lobbyScreen');
             const appEl = $('#app');
+            const authScreen = $('#authScreen');
+            const authTitle = $('#authTitle');
+            const authSub = $('#authSub');
+            const authEmail = $('#authEmail');
+            const authPassword = $('#authPassword');
+            const authError = $('#authError');
+            const authSubmitBtn = $('#authSubmitBtn');
+            const authToggleModeBtn = $('#authToggleModeBtn');
+            const currentUserEmail = $('#currentUserEmail');
+            const logoutBtn = $('#logoutBtn');
             const lobbyGrid = $('#lobbyGrid');
             const lobbyEmpty = $('#lobbyEmpty');
             const lobbyNewProjectBtn = $('#lobbyNewProjectBtn');
@@ -152,11 +164,104 @@
                 }
             }
 
+            // ──── AUTH (real per-account isolation) ────
+            // Every signed-in user gets their own Supabase Auth account (auth.uid()).
+            // Cloud saves are tagged with owner_id = currentUser.id, and the database's
+            // row-level security policies (see the SQL migration) only let a user read or
+            // write rows where owner_id matches their own auth.uid(). Nothing here can see
+            // or touch another account's data.
+
+            function setAuthMode(mode) {
+                authMode = mode;
+                authError.textContent = '';
+                if (mode === 'signup') {
+                    authTitle.textContent = 'Create an account';
+                    authSub.textContent = 'Your projects will be tied to this account only — no one else can see or edit them.';
+                    authSubmitBtn.textContent = 'Create account';
+                    authToggleModeBtn.textContent = 'Already have an account? Sign in';
+                } else {
+                    authTitle.textContent = 'Sign in';
+                    authSub.textContent = 'Your projects are private to your account. Sign in or create one to continue.';
+                    authSubmitBtn.textContent = 'Sign in';
+                    authToggleModeBtn.textContent = "Don't have an account? Create one";
+                }
+            }
+
+            async function handleAuthSubmit() {
+                const email = authEmail.value.trim();
+                const password = authPassword.value;
+                authError.textContent = '';
+                if (!email || !password) {
+                    authError.textContent = 'Enter an email and password.';
+                    return;
+                }
+                if (password.length < 6) {
+                    authError.textContent = 'Password must be at least 6 characters.';
+                    return;
+                }
+                authSubmitBtn.disabled = true;
+                const originalLabel = authSubmitBtn.textContent;
+                authSubmitBtn.textContent = 'Please wait…';
+                try {
+                    if (authMode === 'signup') {
+                        const { data, error } = await supabase.auth.signUp({ email, password });
+                        if (error) { authError.textContent = error.message; return; }
+                        if (data.session) {
+                            onSignedIn(data.session.user);
+                        } else {
+                            authError.textContent = 'Account created — check your email to confirm, then sign in.';
+                            setAuthMode('signin');
+                        }
+                    } else {
+                        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                        if (error) { authError.textContent = error.message; return; }
+                        onSignedIn(data.user);
+                    }
+                } catch (err) {
+                    authError.textContent = err.message || 'Something went wrong.';
+                } finally {
+                    authSubmitBtn.disabled = false;
+                    authSubmitBtn.textContent = originalLabel;
+                }
+            }
+
+            function onSignedIn(user) {
+                currentUser = user;
+                authEmail.value = '';
+                authPassword.value = '';
+                currentUserEmail.textContent = user.email || '';
+                authScreen.style.display = 'none';
+                lobbyScreen.style.display = '';
+                loadLobby();
+                migrateLegacyDataIfNeeded();
+                renderLobby();
+                toast('✅ Signed in as ' + user.email, 'success', 3000);
+            }
+
+            async function handleLogout() {
+                if (!confirm('Log out?')) return;
+                try { await supabase.auth.signOut(); } catch (_) { /* ignore */ }
+                currentUser = null;
+                projects = {};
+                lobbyProjects = {};
+                activeLobbyId = null;
+                appEl.style.display = 'none';
+                lobbyScreen.style.display = 'none';
+                authEmail.value = '';
+                authPassword.value = '';
+                setAuthMode('signin');
+                authScreen.style.display = '';
+            }
+
             // ──── SAVE TO SUPABASE ────
             
             async function saveProjectToSupabase(projectId) {
                 if (!supabase || !supabaseConnected) {
                     toast('⚠️ Not connected to Supabase.', 'error');
+                    return false;
+                }
+                if (!currentUser) {
+                    toast('❌ You must be signed in to save to the cloud.', 'error');
                     return false;
                 }
                 
@@ -169,6 +274,7 @@
                 try {
                     const data = {
                         id: projectId,
+                        owner_id: currentUser.id,
                         name: proj.name,
                         title: proj.title,
                         columns: proj.columns,
@@ -1745,6 +1851,7 @@
                 const p = lobbyProjects[id];
                 if (!p) return;
                 if (!supabaseConnected) { toast('❌ Not connected to Supabase.', 'error'); return; }
+                if (!currentUser) { toast('❌ You must be signed in to publish.', 'error'); return; }
 
                 let raw = null;
                 try { raw = localStorage.getItem(STORAGE_PREFIX + '__' + id); } catch (_) { /* ignore */ }
@@ -1777,6 +1884,7 @@
                 try {
                     const { error } = await supabase.from(LOBBY_PROJECTS_TABLE).upsert({
                         id,
+                        owner_id: currentUser.id,
                         name: p.name,
                         visibility: 'public',
                         password_hash: passwordHash,
@@ -1960,9 +2068,36 @@
                 // Create autocomplete dropdown
                 createAutocompleteDropdown();
 
-                loadLobby();
-                migrateLegacyDataIfNeeded();
-                renderLobby();
+                // ── Auth event listeners ──
+                authSubmitBtn.addEventListener('click', handleAuthSubmit);
+                authToggleModeBtn.addEventListener('click', () => {
+                    setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+                });
+                authPassword.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') handleAuthSubmit();
+                });
+                logoutBtn.addEventListener('click', handleLogout);
+                setAuthMode('signin');
+
+                // Show the right screen based on whether a session already exists,
+                // then react to sign-in/out from anywhere (e.g. another tab).
+                if (connected) {
+                    supabase.auth.getSession().then(({ data }) => {
+                        if (data.session) {
+                            onSignedIn(data.session.user);
+                        } else {
+                            authScreen.style.display = '';
+                        }
+                    });
+                    supabase.auth.onAuthStateChange((_event, session) => {
+                        if (session && (!currentUser || currentUser.id !== session.user.id)) {
+                            onSignedIn(session.user);
+                        }
+                    });
+                } else {
+                    authError.textContent = 'Could not connect — check your internet connection and reload.';
+                    authScreen.style.display = '';
+                }
 
                 // ── Lobby event listeners ──
                 lobbyNewProjectBtn.addEventListener('click', createLobbyProject);
@@ -2037,10 +2172,6 @@
 
                 saveStatusText.textContent = 'Unsaved changes';
                 saveIndicator.className = 'save-indicator unsaved';
-
-                if (connected) {
-                    toast('✅ Ready! Pick a project to get started.', 'success', 4000);
-                }
             }
 
             initApp();

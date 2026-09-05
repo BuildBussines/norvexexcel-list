@@ -1,21 +1,97 @@
 # Norvex · Data List
 
-A browser-based project/spreadsheet tool with Supabase-backed cloud save, and
-public/private project sharing with optional password protection.
+A browser-based project/spreadsheet tool with Supabase-backed cloud save,
+real per-account sign-in, and public/private project sharing with optional
+password protection.
 
 ## Files
 
-- `index.html` — page structure
-- `style.css` — all styling (themes, layout, components)
-- `script.js` — all app logic (lobby, sheet editor, Supabase sync, public sharing)
+- `index.html` — **this is the actual live app.** All markup, styles, and
+  script are embedded directly in this one file (the CSS/JS run entirely
+  inline inside `<style>`/`<script>` tags) — this is what GitHub Pages
+  serves.
+- `style.css` / `script.js` — kept as readable copies of the CSS/JS that's
+  embedded in `index.html`, for reference/diffing only. **Editing these
+  files alone has no effect on the live site** — `index.html` does not
+  link to them. If you change something, change it in `index.html` (and
+  optionally mirror the change here too).
 
-No build step — it's a static site. Open `index.html` in a browser, or serve
-the folder with any static file host.
+No build step — it's a static site. Open `index.html` in a browser, or
+serve the folder with any static file host.
 
-## Supabase setup
+## Accounts & security
 
-This app uses Supabase for cloud save and for public project sharing. The
-connection details live at the top of `script.js`:
+The app now requires signing in (email + password, via Supabase Auth)
+before you can see or create projects. Every project you save to the
+cloud is tagged with your account's id (`owner_id`), and the database
+policies below only let an account read or write its **own** rows. This
+replaces the earlier version, which had no accounts at all and a database
+policy that let anyone with the (public) API key read or write any row —
+that's the bug behind "my brother's account can see my files."
+
+### One-time setup you need to do in Supabase
+
+1. **Authentication → Providers → Email**: make sure Email sign-in is
+   enabled (it's on by default for new projects). You can turn off "Confirm
+   email" while testing so new accounts can sign in immediately.
+2. **SQL Editor**: run the migration below once. It adds an `owner_id`
+   column to both tables and replaces the old "anyone can write" policy
+   with real per-account rules.
+
+```sql
+-- Add an owner column to both tables
+alter table public.projects add column if not exists owner_id uuid references auth.users(id);
+alter table public.lobby_projects add column if not exists owner_id uuid references auth.users(id);
+
+-- Make sure row level security is actually on
+alter table public.projects enable row level security;
+alter table public.lobby_projects enable row level security;
+
+-- Remove the old, over-permissive policy (it allowed anyone to read/write any row)
+drop policy if exists "anyone can write" on public.lobby_projects;
+drop policy if exists "read public rows" on public.lobby_projects;
+
+-- lobby_projects: an account can see its own projects, or any project
+-- someone has published as public. Only the owner can insert/update/delete.
+create policy "select own or public" on public.lobby_projects
+  for select using (owner_id = auth.uid() or visibility = 'public');
+
+create policy "insert own" on public.lobby_projects
+  for insert with check (owner_id = auth.uid());
+
+create policy "update own" on public.lobby_projects
+  for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
+create policy "delete own" on public.lobby_projects
+  for delete using (owner_id = auth.uid());
+
+-- projects (individual files): only the owner can ever read/write these
+create policy "select own project files" on public.projects
+  for select using (owner_id = auth.uid());
+
+create policy "insert own project files" on public.projects
+  for insert with check (owner_id = auth.uid());
+
+create policy "update own project files" on public.projects
+  for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
+create policy "delete own project files" on public.projects
+  for delete using (owner_id = auth.uid());
+```
+
+> **Note on data saved before this fix:** any rows saved to Supabase
+> before you run this migration have no `owner_id`, so after the
+> migration they won't be readable by anyone through the app (they're
+> not deleted, just orphaned). If you need to recover a specific old
+> project, sign in with the account you want to own it, find the
+> project's `id` in the Supabase table editor, and run:
+> `update public.lobby_projects set owner_id = '<your-user-id>' where id = '<project-id>';`
+> (and the same for `public.projects` if it has file rows worth keeping).
+> Your `<your-user-id>` is shown under **Authentication → Users** in
+> Supabase after you sign up.
+
+The connection details live at the top of the app's `<script>` block in
+`index.html` (mirrored in `script.js`):
 
 ```js
 const SUPABASE_URL = 'https://opfvcedujhxstxvcpwkr.supabase.co';
@@ -27,35 +103,13 @@ Two tables are used:
 **`projects`** — stores individual files (sheets) when you click "Save to Cloud".
 
 **`lobby_projects`** — stores project folders that have been made public, so
-they're searchable from any browser. Create it with:
+they're searchable from any browser.
 
-```sql
-create table public.lobby_projects (
-  id text primary key,
-  name text not null,
-  visibility text not null default 'private',
-  password_hash text,
-  has_password boolean not null default false,
-  file_count int not null default 0,
-  files jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.lobby_projects enable row level security;
-
-create policy "read public rows" on public.lobby_projects
-for select using (visibility = 'public');
-
-create policy "anyone can write" on public.lobby_projects
-for all using (true) with check (true);
-```
-
-> Note: there's no real user auth in this app — it uses a single shared
-> publishable key. The password on a public project is a soft, UI-level gate,
-> not a hard security boundary. Anyone querying the Supabase table directly
-> with the same key could still read a "protected" project's data. Real
-> access control would need a server-side check (e.g. a Supabase Edge
-> Function) in front of the `files` column.
+> Note: a public project's password is still a soft, UI-level gate on top
+> of the real database rule above — the app checks it before showing you
+> the data, but it isn't a second layer of database-level access control.
+> That's an acceptable trade-off for a "share this read-only" feature, as
+> long as the underlying private-project policies (above) are in place.
 
 ## Deploying with GitHub Pages
 
@@ -67,10 +121,11 @@ for all using (true) with check (true);
 
 ## Features
 
+- Sign in / create an account before accessing your projects
 - Lobby of projects, each holding one or more files (sheets)
 - Spreadsheet-style editor: add/edit/delete rows and columns, highlights,
   heading rows, CSV import/export
-- Cloud save per file via Supabase
-- Multiple color themes
+- Cloud save per file via Supabase, scoped to your account
+- Multiple color themes, including a new default "Gridline" paper-and-grid theme
 - Publish a project as public (optionally password-protected) so others can
   find it via the **Public Projects** search tab and view it read-only
