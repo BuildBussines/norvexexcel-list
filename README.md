@@ -129,3 +129,49 @@ they're searchable from any browser.
 - Multiple color themes, including a new default "Gridline" paper-and-grid theme
 - Publish a project as public (optionally password-protected) so others can
   find it via the **Public Projects** search tab and view it read-only
+
+## Follow-up migration: "View and Edit" public sharing
+
+Publishing a project now lets you choose **View Only** (unchanged — read-only
+for everyone else) or **View and Edit** (anyone who opens the shared link can
+also add/edit rows and columns, and save those changes back). Run this once
+in the SQL Editor, after the migration above:
+
+```sql
+-- Track which access level a public project was shared with
+alter table public.lobby_projects add column if not exists edit_access text not null default 'view'
+  check (edit_access in ('view', 'edit'));
+
+-- Let ANY signed-in account update a project's files, but only when the
+-- owner has explicitly published it with edit_access = 'edit'. Nothing here
+-- lets someone touch a private project or one shared as "view only".
+create policy "edit public editable projects" on public.lobby_projects
+  for update
+  using (visibility = 'public' and edit_access = 'edit')
+  with check (visibility = 'public' and edit_access = 'edit');
+
+-- Guardrail: even on an editable public project, only the owner can rename
+-- it, change its password, un-publish it, or flip it back to view-only.
+-- Everyone else can only change the files/file_count/updated_at columns.
+create or replace function public.protect_lobby_admin_fields()
+returns trigger as $$
+begin
+  if auth.uid() is distinct from old.owner_id then
+    if new.owner_id is distinct from old.owner_id
+       or new.visibility is distinct from old.visibility
+       or new.edit_access is distinct from old.edit_access
+       or new.password_hash is distinct from old.password_hash
+       or new.has_password is distinct from old.has_password
+       or new.name is distinct from old.name then
+      raise exception 'Only the project owner can change that setting';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists lobby_projects_protect_admin_fields on public.lobby_projects;
+create trigger lobby_projects_protect_admin_fields
+before update on public.lobby_projects
+for each row execute function public.protect_lobby_admin_fields();
+```

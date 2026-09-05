@@ -15,7 +15,10 @@
             let lobbyTab = 'mine'; // 'mine' | 'public'
             let publicResults = [];
             let publicSearchDebounce = null;
-            let isPublicViewMode = false;   // true while viewing someone else's public project (read-only)
+            let isPublicViewMode = false;   // true while viewing someone else's public project
+            let publicCanEdit = false;      // when true + isPublicViewMode: this public project allows editing
+            let currentPublicLobbyId = null; // the lobby_projects.id currently open in public mode, for saving edits back
+            function isReadOnlyNow() { return isPublicViewMode && !publicCanEdit; }
 
             async function sha256Hex(text) {
                 const enc = new TextEncoder().encode(text);
@@ -59,7 +62,7 @@
             let projects = {};
             let currentProjectId = null;
             let searchTerm = '';
-            let currentTheme = 'light';
+            let currentTheme = 'gridline';
             let modalResolve = null;
             let isSettingsModalOpen = false;
             let isSaving = false;
@@ -130,6 +133,7 @@
             const modalCancelBtn = $('#modalCancelBtn');
             const toastContainer = $('#toastContainer');
             const saveToSupabaseBtn = $('#saveToSupabaseBtn');
+            const savePublicEditsBtn = $('#savePublicEditsBtn');
             const saveStatusText = $('#saveStatusText');
             const saveIndicator = $('#saveIndicator');
             const connectionStatus = $('#connectionStatus');
@@ -312,7 +316,7 @@
             // ──── SAVE BUTTON HANDLER ────
 
             async function saveCurrentProjectToSupabase() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 if (isSaving) return;
                 if (!currentProjectId || !projects[currentProjectId]) {
                     toast('No file to save.', 'error');
@@ -357,6 +361,44 @@
                 }
             }
 
+            async function savePublicEditsToSupabase() {
+                if (!isPublicViewMode || !publicCanEdit || !currentPublicLobbyId) return;
+                if (isSaving) return;
+                if (!supabaseConnected) {
+                    toast('❌ Not connected to Supabase.', 'error');
+                    return;
+                }
+                isSaving = true;
+                savePublicEditsBtn.disabled = true;
+                savePublicEditsBtn.innerHTML = '<i class="fas fa-spinner"></i> Saving...';
+                saveStatusText.textContent = 'Saving...';
+                saveIndicator.className = 'save-indicator saving';
+                try {
+                    const { error } = await supabase.from(LOBBY_PROJECTS_TABLE).update({
+                        files: projects,
+                        file_count: Object.keys(projects).length,
+                        updated_at: new Date().toISOString()
+                    }).eq('id', currentPublicLobbyId);
+                    if (error) {
+                        saveStatusText.textContent = 'Save failed!';
+                        saveIndicator.className = 'save-indicator error';
+                        toast('❌ Error saving: ' + error.message, 'error', 4000);
+                    } else {
+                        saveStatusText.textContent = 'Saved ✓';
+                        saveIndicator.className = 'save-indicator saved';
+                        toast('✅ Your edits were saved to this shared project.', 'success');
+                    }
+                } catch (err) {
+                    saveStatusText.textContent = 'Save failed!';
+                    saveIndicator.className = 'save-indicator error';
+                    toast('❌ Error saving: ' + err.message, 'error', 4000);
+                } finally {
+                    isSaving = false;
+                    savePublicEditsBtn.disabled = false;
+                    savePublicEditsBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save changes';
+                }
+            }
+
             // ──── PERSISTENCE ────
 
             function saveProjects() {
@@ -393,7 +435,7 @@
             }
 
             function loadProjects() {
-                if (!activeLobbyId) return false;
+                if (!activeLobbyId) { projects = {}; currentProjectId = null; return false; }
                 try {
                     const data = localStorage.getItem(dataStorageKey());
                     if (data) {
@@ -415,6 +457,11 @@
                         }
                     }
                 } catch (_) { /* ignore */ }
+                // No saved data for this project (or it failed to parse) — always start
+                // this project's file list empty rather than leaving whatever was loaded
+                // in memory for a previously-open project.
+                projects = {};
+                currentProjectId = null;
                 return false;
             }
 
@@ -425,12 +472,12 @@
                         currentTheme = val;
                         applyTheme(val);
                     } else {
-                        currentTheme = 'light';
-                        applyTheme('light');
+                        currentTheme = 'gridline';
+                        applyTheme('gridline');
                     }
                 } catch (_) {
-                    currentTheme = 'light';
-                    applyTheme('light');
+                    currentTheme = 'gridline';
+                    applyTheme('gridline');
                 }
             }
 
@@ -453,7 +500,7 @@
             }
 
             function toggleTheme() {
-                const themes = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themes = ['gridline', 'light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 const idx = themes.indexOf(currentTheme);
                 const next = (idx + 1) % themes.length;
                 applyTheme(themes[next]);
@@ -722,7 +769,7 @@
                 }
 
                 sheetTitle.value = proj.title || '';
-                sheetTitle.readOnly = !!isPublicViewMode;
+                sheetTitle.readOnly = isReadOnlyNow();
 
                 const term = searchTerm.trim().toLowerCase();
                 let filteredRows = proj.rows;
@@ -840,7 +887,7 @@
             // ──── TABLE EVENTS ────
 
             function bindTableEvents() {
-                if (isPublicViewMode) {
+                if (isReadOnlyNow()) {
                     document.querySelectorAll('.cell-input, .col-name-input').forEach(inp => {
                         inp.readOnly = true;
                         inp.tabIndex = -1;
@@ -1140,7 +1187,7 @@
             }
 
             function addProject() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const name = prompt('Enter new file name:', 'File ' + (Object.keys(projects).length + 1));
                 if (name === null) return;
                 const trimmed = name.trim() || 'Untitled';
@@ -1153,7 +1200,7 @@
             }
 
             function openRenameProjectModal(id) {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = projects[id];
                 if (!proj) return;
                 const newName = prompt('Rename file:', proj.name);
@@ -1166,7 +1213,7 @@
             }
 
             function deleteProject(id) {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 if (!projects[id]) return;
                 const ids = Object.keys(projects);
                 if (ids.length <= 1) {
@@ -1331,7 +1378,7 @@
                     `;
                 });
 
-                const themeOptions = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themeOptions = ['gridline', 'light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 let themeHtml = '';
                 themeOptions.forEach(t => {
                     const active = t === currentTheme ? 'active-theme' : '';
@@ -1402,7 +1449,7 @@
             }
 
             function addEmptyRow() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 const emptyRow = proj.columns.map(() => '');
@@ -1413,7 +1460,7 @@
             }
 
             async function openAddColumnModal() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 const html = `
@@ -1440,7 +1487,7 @@
             }
 
             function toggleHeaderTitle() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 proj.hasHeaderTitle = !proj.hasHeaderTitle;
@@ -1494,7 +1541,7 @@
             }
 
             function importCSV(file) {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 const reader = new FileReader();
@@ -1551,7 +1598,7 @@
             // ──── RESET / CLEAR ────
 
             function resetToDefault() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 if (!confirm('Reset this file to default data (100 empty rows)?')) return;
@@ -1570,7 +1617,7 @@
             }
 
             function clearAllData() {
-                if (isPublicViewMode) return;
+                if (isReadOnlyNow()) return;
                 const proj = getCurrentProject();
                 if (!proj) return;
                 if (proj.rows.length === 0) { toast('Already empty.', 'info'); return; }
@@ -1797,15 +1844,26 @@
                 const p = lobbyProjects[id];
                 if (!p) return;
                 const isPublic = p.visibility === 'public';
+                const currentAccess = p.editAccess === 'edit' ? 'edit' : 'view';
+                const accessPicker = `
+                    <div class="form-group">
+                        <label>Access</label>
+                        <select id="shareAccessSelect">
+                            <option value="view" ${currentAccess === 'view' ? 'selected' : ''}>View Only — people can look, not change anything</option>
+                            <option value="edit" ${currentAccess === 'edit' ? 'selected' : ''}>View and Edit — anyone with the link can also make changes</option>
+                        </select>
+                    </div>
+                `;
                 let bodyHtml = '';
                 if (isPublic) {
                     bodyHtml = `
-                        <div class="share-status-line"><i class="fas fa-globe"></i> This project is public. Anyone can find and view it (read-only) in the Public Projects search.</div>
+                        <div class="share-status-line"><i class="fas fa-globe"></i> This project is public. Anyone can find it in the Public Projects search.</div>
                         <div class="form-group">
                             <label>Password (optional)</label>
                             <input type="text" id="sharePasswordInput" placeholder="${p.hasPassword ? 'Leave blank to keep current password' : 'Leave blank for no password'}" />
                             <p class="share-note">Republishing uploads the current files as the shared copy. Leave the password field blank to keep it as-is; type a new one to change it, or type <strong>REMOVE</strong> to clear it.</p>
                         </div>
+                        ${accessPicker}
                         <button type="button" id="shareUnpublishBtn"><i class="fas fa-lock"></i> Make Private</button>
                     `;
                 } else {
@@ -1813,8 +1871,9 @@
                         <div class="form-group">
                             <label>Password (optional)</label>
                             <input type="text" id="sharePasswordInput" placeholder="Leave blank for no password" />
-                            <p class="share-note">Anyone will be able to find "${escapeHtml(p.name)}" in Public Projects search and view its files as read-only. They can't edit or delete anything. Set a password if you only want people who have it to be able to open it.</p>
+                            <p class="share-note">Anyone will be able to find "${escapeHtml(p.name)}" in Public Projects search and open it. Choose below whether they can only view it, or also edit it. Set a password if you only want people who have it to be able to open it.</p>
                         </div>
+                        ${accessPicker}
                     `;
                 }
 
@@ -1844,10 +1903,11 @@
                 }
                 if (result === null) return;
                 const pwField = result[0];
-                await publishLobbyProject(id, pwField);
+                const editAccess = result[1] === 'edit' ? 'edit' : 'view';
+                await publishLobbyProject(id, pwField, editAccess);
             }
 
-            async function publishLobbyProject(id, passwordFieldValue) {
+            async function publishLobbyProject(id, passwordFieldValue, editAccess) {
                 const p = lobbyProjects[id];
                 if (!p) return;
                 if (!supabaseConnected) { toast('❌ Not connected to Supabase.', 'error'); return; }
@@ -1887,6 +1947,7 @@
                         owner_id: currentUser.id,
                         name: p.name,
                         visibility: 'public',
+                        edit_access: editAccess === 'edit' ? 'edit' : 'view',
                         password_hash: passwordHash,
                         has_password: hasPassword,
                         file_count: fileCount,
@@ -1899,6 +1960,7 @@
                         return;
                     }
                     p.visibility = 'public';
+                    p.editAccess = editAccess === 'edit' ? 'edit' : 'view';
                     p.hasPassword = hasPassword;
                     saveLobby();
                     renderLobby();
@@ -1950,6 +2012,8 @@
 
             function enterPublicViewMode(data) {
                 isPublicViewMode = true;
+                publicCanEdit = data.edit_access === 'edit';
+                currentPublicLobbyId = data.id;
                 activeLobbyId = null;
                 projects = data.files || {};
                 for (const [, proj] of Object.entries(projects)) migrateProject(proj);
@@ -1961,8 +2025,11 @@
                 }
 
                 activeProjectName.textContent = data.name;
-                viewOnlyBannerText.textContent = `Public project "${data.name}" — view only`;
+                viewOnlyBannerText.textContent = publicCanEdit
+                    ? `Public project "${data.name}" — anyone with the link can view and edit`
+                    : `Public project "${data.name}" — view only`;
                 appEl.classList.add('view-only-mode');
+                if (publicCanEdit) appEl.classList.add('public-edit-mode');
                 lobbyScreen.style.display = 'none';
                 appEl.style.display = '';
                 renderAll();
@@ -2048,6 +2115,9 @@
             function backToLobby() {
                 const wasPublicView = isPublicViewMode;
                 isPublicViewMode = false;
+                publicCanEdit = false;
+                currentPublicLobbyId = null;
+                appEl.classList.remove('public-edit-mode');
                 activeLobbyId = null;
                 appEl.classList.remove('view-only-mode');
                 appEl.style.display = 'none';
@@ -2117,7 +2187,7 @@
 
                 // ── Workspace event listeners ──
                 sheetTitle.addEventListener('change', () => {
-                    if (isPublicViewMode) return;
+                    if (isReadOnlyNow()) return;
                     const proj = getCurrentProject();
                     if (!proj) return;
                     proj.title = sheetTitle.value.trim() || 'Untitled Sheet';
@@ -2147,6 +2217,7 @@
 
                 // ⭐ SAVE BUTTON ⭐
                 saveToSupabaseBtn.addEventListener('click', saveCurrentProjectToSupabase);
+                savePublicEditsBtn.addEventListener('click', savePublicEditsToSupabase);
 
                 addProjectBtn.addEventListener('click', addProject);
                 renameProjectBtn.addEventListener('click', () => {
@@ -2159,7 +2230,7 @@
                 settingsBtn.addEventListener('click', openSettingsModal);
 
                 document.addEventListener('keydown', (e) => {
-                    if (isPublicViewMode) return;
+                    if (isReadOnlyNow()) return;
                     if (e.ctrlKey && e.shiftKey && (e.key === 'N' || e.key === 'n')) {
                         e.preventDefault();
                         if (appEl.style.display !== 'none') addEmptyRow();

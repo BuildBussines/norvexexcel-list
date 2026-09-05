@@ -150,6 +150,36 @@
             --heading-row-color: #3a1a5a;
         }
 
+        .theme-gridline {
+            --bg: #F6F4EE;
+            --surface: #FFFFFF;
+            --surface2: #ECE8DC;
+            --border: #DCD6C4;
+            --text: #24261F;
+            --text2: #6B6E62;
+            --accent: #2A5FEE;
+            --accent-hover: #1C3FA0;
+            --accent-light: #E7ECFD;
+            --danger: #C6451D;
+            --danger-hover: #9C3717;
+            --success: #2F7A4D;
+            --success-hover: #215939;
+            --heading-bg: #ECE7D6;
+            --heading-color: #1C3FA0;
+            --highlight-row-bg: #FBF3D9;
+            --highlight-col-bg: #FCF8EA;
+            --heading-row-bg: #EDEEE3;
+            --heading-row-color: #24261F;
+            --radius: 6px;
+            --shadow: 0 1px 3px rgba(36, 38, 31, 0.06), 0 4px 14px rgba(36, 38, 31, 0.05);
+            --font: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .theme-gridline .logo {
+            background: none;
+            -webkit-text-fill-color: initial;
+            color: var(--text);
+        }
+
         body {
             font-family: var(--font);
             background: var(--bg);
@@ -460,6 +490,25 @@
         .app.view-only-mode .col-name-input {
             pointer-events: none;
             background: transparent;
+        }
+        /* Public "View and Edit" mode: re-enable the actions needed to edit cells/rows/columns,
+           but keep file-management (new/rename/delete file, settings, CSV import, clear/reset)
+           off — those don't make sense on someone else's shared project. */
+        .app.public-edit-mode #addRowBtn,
+        .app.public-edit-mode #addColBtn,
+        .app.public-edit-mode #addHeaderBtn,
+        .app.public-edit-mode .row-actions,
+        .app.public-edit-mode .col-actions {
+            display: inline-flex !important;
+        }
+        .app.public-edit-mode #sheetTitle,
+        .app.public-edit-mode .cell-input,
+        .app.public-edit-mode .col-name-input {
+            pointer-events: auto;
+            background: var(--surface);
+        }
+        .app.public-edit-mode #savePublicEditsBtn {
+            display: inline-flex !important;
         }
         .lobby-back-btn {
             background: none;
