@@ -500,7 +500,7 @@
             }
 
             function toggleTheme() {
-                const themes = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themes = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 const idx = themes.indexOf(currentTheme);
                 const next = (idx + 1) % themes.length;
                 applyTheme(themes[next]);
@@ -1378,7 +1378,7 @@
                     `;
                 });
 
-                const themeOptions = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themeOptions = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 let themeHtml = '';
                 themeOptions.forEach(t => {
                     const active = t === currentTheme ? 'active-theme' : '';
