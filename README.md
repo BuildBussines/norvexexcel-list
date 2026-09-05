@@ -53,28 +53,36 @@ drop policy if exists "read public rows" on public.lobby_projects;
 
 -- lobby_projects: an account can see its own projects, or any project
 -- someone has published as public. Only the owner can insert/update/delete.
+drop policy if exists "select own or public" on public.lobby_projects;
 create policy "select own or public" on public.lobby_projects
   for select using (owner_id = auth.uid() or visibility = 'public');
 
+drop policy if exists "insert own" on public.lobby_projects;
 create policy "insert own" on public.lobby_projects
   for insert with check (owner_id = auth.uid());
 
+drop policy if exists "update own" on public.lobby_projects;
 create policy "update own" on public.lobby_projects
   for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+drop policy if exists "delete own" on public.lobby_projects;
 create policy "delete own" on public.lobby_projects
   for delete using (owner_id = auth.uid());
 
 -- projects (individual files): only the owner can ever read/write these
+drop policy if exists "select own project files" on public.projects;
 create policy "select own project files" on public.projects
   for select using (owner_id = auth.uid());
 
+drop policy if exists "insert own project files" on public.projects;
 create policy "insert own project files" on public.projects
   for insert with check (owner_id = auth.uid());
 
+drop policy if exists "update own project files" on public.projects;
 create policy "update own project files" on public.projects
   for update using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
+drop policy if exists "delete own project files" on public.projects;
 create policy "delete own project files" on public.projects
   for delete using (owner_id = auth.uid());
 ```
@@ -145,6 +153,7 @@ alter table public.lobby_projects add column if not exists edit_access text not 
 -- Let ANY signed-in account update a project's files, but only when the
 -- owner has explicitly published it with edit_access = 'edit'. Nothing here
 -- lets someone touch a private project or one shared as "view only".
+drop policy if exists "edit public editable projects" on public.lobby_projects;
 create policy "edit public editable projects" on public.lobby_projects
   for update
   using (visibility = 'public' and edit_access = 'edit')
