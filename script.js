@@ -62,7 +62,7 @@
             let projects = {};
             let currentProjectId = null;
             let searchTerm = '';
-            let currentTheme = 'gridline';
+            let currentTheme = 'light';
             let modalResolve = null;
             let isSettingsModalOpen = false;
             let isSaving = false;
@@ -472,12 +472,12 @@
                         currentTheme = val;
                         applyTheme(val);
                     } else {
-                        currentTheme = 'gridline';
-                        applyTheme('gridline');
+                        currentTheme = 'light';
+                        applyTheme('light');
                     }
                 } catch (_) {
-                    currentTheme = 'gridline';
-                    applyTheme('gridline');
+                    currentTheme = 'light';
+                    applyTheme('light');
                 }
             }
 
@@ -500,7 +500,7 @@
             }
 
             function toggleTheme() {
-                const themes = ['gridline', 'light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themes = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 const idx = themes.indexOf(currentTheme);
                 const next = (idx + 1) % themes.length;
                 applyTheme(themes[next]);
@@ -1378,7 +1378,7 @@
                     `;
                 });
 
-                const themeOptions = ['gridline', 'light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themeOptions = ['light', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
                 let themeHtml = '';
                 themeOptions.forEach(t => {
                     const active = t === currentTheme ? 'active-theme' : '';

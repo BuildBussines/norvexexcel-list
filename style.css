@@ -7,31 +7,36 @@
             padding: 0;
         }
 
-        /* ─── THEME SYSTEM ─── */
+        /* ─── THEME SYSTEM ───
+           Ledger palette: a data-list tool reads best like a well-kept
+           register — cool paper, ink text, one deliberate ink-teal accent
+           (the "verified" color of a stamped ledger entry), gold for
+           flagged/highlighted rows, brick for danger. */
         :root {
-            --bg: #f6f8fc;
+            --bg: #EAEDE3;
             --surface: #ffffff;
-            --surface2: #f0f2f6;
-            --border: #d0d5dd;
-            --text: #1a1f2e;
-            --text2: #4a5066;
-            --accent: #2a7de1;
-            --accent-hover: #1a5fb4;
-            --accent-light: #e8f0fe;
-            --danger: #e1534f;
-            --danger-hover: #b23d3a;
-            --success: #2b8f5c;
-            --success-hover: #1f6a44;
-            --heading-bg: #e8f0fe;
-            --heading-color: #1a5fb4;
-            --highlight-row-bg: #fffde7;
-            --highlight-col-bg: #fffef5;
-            --heading-row-bg: #f0f4ff;
-            --heading-row-color: #1a3a6e;
-            --radius: 10px;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+            --surface2: #E1E5D6;
+            --border: #C7CCB8;
+            --text: #1E241F;
+            --text2: #5B6357;
+            --accent: #2F6B5E;
+            --accent-hover: #234F45;
+            --accent-light: #DCEAE4;
+            --danger: #A63D2E;
+            --danger-hover: #832E22;
+            --success: #3F7D3A;
+            --success-hover: #2E5C2A;
+            --heading-bg: #DCEAE4;
+            --heading-color: #234F45;
+            --highlight-row-bg: #F5EBC9;
+            --highlight-col-bg: #FAF3DC;
+            --heading-row-bg: #E3E7D8;
+            --heading-row-color: #1E241F;
+            --radius: 6px;
+            --shadow: 0 1px 2px rgba(30, 36, 32, 0.06), 0 8px 24px rgba(30, 36, 32, 0.06);
             --transition: 0.2s ease;
-            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --font: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-display: 'Space Grotesk', -apple-system, 'Segoe UI', sans-serif;
             --tab-bg: transparent;
             --tab-active: var(--surface);
             --tab-border: var(--border);
@@ -150,36 +155,6 @@
             --heading-row-color: #3a1a5a;
         }
 
-        .theme-gridline {
-            --bg: #F6F4EE;
-            --surface: #FFFFFF;
-            --surface2: #ECE8DC;
-            --border: #DCD6C4;
-            --text: #24261F;
-            --text2: #6B6E62;
-            --accent: #2A5FEE;
-            --accent-hover: #1C3FA0;
-            --accent-light: #E7ECFD;
-            --danger: #C6451D;
-            --danger-hover: #9C3717;
-            --success: #2F7A4D;
-            --success-hover: #215939;
-            --heading-bg: #ECE7D6;
-            --heading-color: #1C3FA0;
-            --highlight-row-bg: #FBF3D9;
-            --highlight-col-bg: #FCF8EA;
-            --heading-row-bg: #EDEEE3;
-            --heading-row-color: #24261F;
-            --radius: 6px;
-            --shadow: 0 1px 3px rgba(36, 38, 31, 0.06), 0 4px 14px rgba(36, 38, 31, 0.05);
-            --font: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        .theme-gridline .logo {
-            background: none;
-            -webkit-text-fill-color: initial;
-            color: var(--text);
-        }
-
         body {
             font-family: var(--font);
             background: var(--bg);
@@ -224,17 +199,18 @@
             margin-bottom: 28px;
         }
         .lobby-header .logo {
-            font-size: 20px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-family: var(--font-display);
+            font-size: 19px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
         }
-        .lobby-header .logo i { -webkit-text-fill-color: var(--accent); }
+        .lobby-header .logo i { color: var(--accent); }
         .lobby-header h1 {
+            font-family: var(--font-display);
             font-size: 30px;
-            font-weight: 700;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             margin-top: 10px;
             color: var(--text);
         }
@@ -291,38 +267,45 @@
         .lobby-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-            gap: 16px;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
         }
         .lobby-card {
             background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 18px;
+            border: none;
+            border-left: 3px solid transparent;
+            border-radius: 0;
+            padding: 16px 18px;
             cursor: pointer;
-            box-shadow: var(--shadow);
-            transition: transform var(--transition), border-color var(--transition);
+            box-shadow: none;
+            transition: border-color var(--transition), background var(--transition);
             display: flex;
             flex-direction: column;
             gap: 10px;
             position: relative;
         }
         .lobby-card:hover {
-            transform: translateY(-3px);
-            border-color: var(--accent);
+            transform: none;
+            border-left-color: var(--accent);
+            background: var(--accent-light);
         }
         .lobby-card .lobby-card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: var(--accent-light);
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            background: none;
             color: var(--accent);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 17px;
         }
         .lobby-card .lobby-card-name {
-            font-size: 16px;
+            font-family: var(--font-display);
+            font-size: 15px;
             font-weight: 600;
             color: var(--text);
             word-break: break-word;
@@ -342,17 +325,17 @@
         }
         .lobby-card:hover .lobby-card-actions { opacity: 1; }
         .lobby-card .lobby-card-actions button {
-            background: var(--surface2);
-            border: none;
+            background: var(--surface);
+            border: 1px solid var(--border);
             color: var(--text2);
             width: 26px;
             height: 26px;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
         }
-        .lobby-card .lobby-card-actions button:hover { background: var(--border); color: var(--text); }
-        .lobby-card .lobby-card-actions button.danger:hover { background: var(--danger); color: #fff; }
+        .lobby-card .lobby-card-actions button:hover { background: var(--surface2); color: var(--text); }
+        .lobby-card .lobby-card-actions button.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
         .lobby-empty {
             text-align: center;
             padding: 60px 20px;
@@ -367,7 +350,7 @@
             gap: 6px;
             background: var(--surface2);
             padding: 4px;
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid var(--border);
         }
         .lobby-tab {
@@ -377,7 +360,7 @@
             font-size: 13px;
             font-weight: 600;
             padding: 8px 14px;
-            border-radius: 7px;
+            border-radius: 5px;
             cursor: pointer;
             transition: background var(--transition), color var(--transition);
             white-space: nowrap;
@@ -548,17 +531,16 @@
             transition: background var(--transition), border var(--transition);
         }
         .project-bar .logo {
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), #8b5cf6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text);
             margin-right: 16px;
             white-space: nowrap;
         }
         .project-bar .logo i {
-            -webkit-text-fill-color: var(--accent);
+            color: var(--accent);
         }
         .project-tabs {
             display: flex;
@@ -736,12 +718,13 @@
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--text);
-            border-radius: 8px;
+            border-radius: var(--radius);
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: -0.01em;
             cursor: pointer;
             transition: all var(--transition);
-            font-family: var(--font);
+            font-family: var(--font-display);
             white-space: nowrap;
         }
         .header-actions button:hover {
@@ -911,12 +894,13 @@
         thead th {
             padding: 12px 16px;
             text-align: left;
+            font-family: var(--font-display);
             font-weight: 600;
-            color: var(--text2);
+            color: var(--heading-color);
             font-size: 13px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-            background: var(--surface2);
+            letter-spacing: -0.01em;
+            background: var(--heading-bg);
+            border-bottom: 2px solid var(--accent);
             white-space: nowrap;
             transition: background var(--transition), color var(--transition);
             position: relative;
@@ -1086,10 +1070,9 @@
             border: none;
             font-weight: 600;
             font-size: 13px;
-            color: var(--text2);
-            font-family: var(--font);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
+            color: var(--heading-color);
+            font-family: var(--font-display);
+            letter-spacing: -0.01em;
             padding: 2px 4px;
             width: 100%;
             min-width: 60px;
@@ -1460,13 +1443,20 @@
             background: var(--surface2);
         }
         .settings-section-title {
+            font-family: var(--font-display);
             font-size: 15px;
             font-weight: 600;
+            letter-spacing: -0.01em;
             margin-bottom: 8px;
             color: var(--text);
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+        #modalTitle {
+            font-family: var(--font-display);
+            font-weight: 600;
+            letter-spacing: -0.01em;
         }
         .settings-section-title i {
             color: var(--accent);
