@@ -6,6 +6,7 @@
     <title>Norvex · Projects</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         /* ─── RESET & BASE ─── */
         *,
@@ -890,6 +891,33 @@
         }
         .menu-dropdown button:hover { background: var(--surface2); }
         .menu-dropdown button i { width: 16px; color: var(--text2); }
+        /* These buttons keep their ids/classes for existing JS + styling
+           elsewhere, but inside the dropdown they should look like plain
+           list items, not toolbar buttons. */
+        .menu-dropdown button.save-btn,
+        .menu-dropdown button.danger,
+        .menu-dropdown button.primary,
+        .menu-dropdown button.success {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: var(--text) !important;
+            font-weight: 400 !important;
+            padding: 9px 12px !important;
+        }
+        .menu-dropdown button.save-btn:hover,
+        .menu-dropdown button.danger:hover,
+        .menu-dropdown button.primary:hover,
+        .menu-dropdown button.success:hover {
+            background: var(--surface2) !important;
+            color: var(--text) !important;
+        }
+        .menu-dropdown button.danger i { color: var(--danger); }
+        .menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 2px;
+        }
 
         /* ─── TOOLBAR ─── */
         .toolbar {
@@ -1412,6 +1440,27 @@
             flex: 1;
             padding-right: 4px;
         }
+        .chart-modal {
+            max-width: 720px;
+        }
+        .chart-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 14px 0 16px 0;
+        }
+        .chart-controls .form-group { margin-bottom: 0; }
+        .chart-canvas-wrap {
+            position: relative;
+            height: 360px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+        }
+        @media (max-width: 600px) {
+            .chart-controls { grid-template-columns: 1fr; }
+        }
         .modal h2 {
             font-size: 20px;
             font-weight: 600;
@@ -1836,16 +1885,18 @@
                     <span class="dot connecting" id="connectionDot"></span>
                     <span id="connectionText">Connecting...</span>
                 </span>
-                <button class="theme-toggle" id="themeToggle" title="Toggle theme" style="display:none;"><i class="fas fa-moon"></i></button>
-                <button id="saveToSupabaseBtn" class="save-btn" title="Save all data to Supabase"><i class="fas fa-cloud-upload-alt"></i> Save to Cloud</button>
-                <button id="savePublicEditsBtn" class="save-btn" style="display:none;" title="Save your edits back to this shared project"><i class="fas fa-cloud-upload-alt"></i> Save changes</button>
-                <button id="resetDataBtn" class="danger"><i class="fas fa-undo-alt"></i> Reset</button>
-                <button id="exportCsvBtn" class="success"><i class="fas fa-file-csv"></i> CSV</button>
-                <button id="importCsvBtn" class="primary"><i class="fas fa-upload"></i> Import</button>
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme" style="display:none;"></button>
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none" />
                 <div class="menu-wrap" id="menuWrap">
                     <button class="menu-btn" id="menuBtn" title="Menu"><i class="fas fa-bars"></i></button>
                     <div class="menu-dropdown" id="menuDropdown">
+                        <button id="saveToSupabaseBtn" class="save-btn" title="Save all data to Supabase"><i class="fas fa-cloud-upload-alt"></i> Save to Cloud</button>
+                        <button id="savePublicEditsBtn" class="save-btn" style="display:none;" title="Save your edits back to this shared project"><i class="fas fa-cloud-upload-alt"></i> Save changes</button>
+                        <button id="chartViewBtn"><i class="fas fa-chart-bar"></i> Chart</button>
+                        <button id="exportCsvBtn"><i class="fas fa-file-csv"></i> Export CSV</button>
+                        <button id="importCsvBtn"><i class="fas fa-upload"></i> Import CSV</button>
+                        <button id="resetDataBtn" class="danger"><i class="fas fa-undo-alt"></i> Reset</button>
+                        <div class="menu-divider"></div>
                         <button data-menu-action="settings" id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
                         <button data-menu-action="logout"><i class="fas fa-sign-out-alt"></i> Log out</button>
                     </div>
@@ -1882,6 +1933,41 @@
                     <span class="save-indicator saved" id="saveIndicator"></span>
                 </span>
                 <span id="lastUpdated">Ready</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── CHART VIEW ─── -->
+    <div class="modal-overlay" id="chartOverlay">
+        <div class="modal chart-modal" id="chartModal">
+            <h2>Chart</h2>
+            <p class="sub">Pick a chart type and which columns to plot. Updates live as your data changes.</p>
+            <div class="chart-controls">
+                <div class="form-group">
+                    <label>Chart type</label>
+                    <select id="chartTypeSelect">
+                        <option value="bar">Bar</option>
+                        <option value="line">Line</option>
+                        <option value="pie">Pie</option>
+                        <option value="doughnut">Doughnut</option>
+                        <option value="scatter">Scatter</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Labels (X axis)</label>
+                    <select id="chartLabelSelect"></select>
+                </div>
+                <div class="form-group">
+                    <label>Values (Y axis)</label>
+                    <select id="chartValueSelect"></select>
+                </div>
+            </div>
+            <div class="chart-canvas-wrap">
+                <canvas id="chartCanvas"></canvas>
+            </div>
+            <p id="chartEmptyNote" style="display:none; text-align:center; color:var(--text2); font-size:13px;">Add some rows with numeric values to see a chart here.</p>
+            <div class="modal-actions">
+                <button id="chartCloseBtn">Close</button>
             </div>
         </div>
     </div>
@@ -2042,6 +2128,15 @@
             const exportCsvBtn = $('#exportCsvBtn');
             const importCsvBtn = $('#importCsvBtn');
             const csvFileInput = $('#csvFileInput');
+            const chartViewBtn = $('#chartViewBtn');
+            const chartOverlay = $('#chartOverlay');
+            const chartCloseBtn = $('#chartCloseBtn');
+            const chartTypeSelect = $('#chartTypeSelect');
+            const chartLabelSelect = $('#chartLabelSelect');
+            const chartValueSelect = $('#chartValueSelect');
+            const chartCanvas = $('#chartCanvas');
+            const chartEmptyNote = $('#chartEmptyNote');
+            let chartInstance = null;
             const modalOverlay = $('#modalOverlay');
             const modalTitle = $('#modalTitle');
             const modalSub = $('#modalSub');
@@ -2431,6 +2526,94 @@
             function getCurrentProject() {
                 if (!currentProjectId || !projects[currentProjectId]) return null;
                 return projects[currentProjectId];
+            }
+
+            // ──── CHART VIEW ────
+            // Builds a live chart from whichever two columns are picked, using
+            // the current file's rows. Works for any file, Grid or Excel.
+            function openChartView() {
+                const proj = getCurrentProject();
+                if (!proj) return;
+                const savedLabel = chartLabelSelect.value;
+                const savedValue = chartValueSelect.value;
+                const optsHtml = proj.columns.map((c, i) => `<option value="${i}">${escapeHtml(c || 'Column ' + (i + 1))}</option>`).join('');
+                chartLabelSelect.innerHTML = optsHtml;
+                chartValueSelect.innerHTML = optsHtml;
+                // Try to keep the previous picks if this file has the same columns;
+                // otherwise default to the first column for labels and the first
+                // numeric-looking column for values.
+                if (savedLabel && Number(savedLabel) < proj.columns.length) {
+                    chartLabelSelect.value = savedLabel;
+                } else {
+                    chartLabelSelect.value = '0';
+                }
+                let defaultValueCol = proj.columns.findIndex((c, i) =>
+                    proj.rows.some(r => r[i] !== '' && !isNaN(parseFloat(r[i])))
+                );
+                if (defaultValueCol === -1) defaultValueCol = proj.columns.length > 1 ? 1 : 0;
+                if (savedValue && Number(savedValue) < proj.columns.length) {
+                    chartValueSelect.value = savedValue;
+                } else {
+                    chartValueSelect.value = String(defaultValueCol);
+                }
+                chartOverlay.classList.add('open');
+                redrawChart();
+            }
+
+            function closeChartView() {
+                chartOverlay.classList.remove('open');
+            }
+
+            const CHART_COLORS = ['#2E75B6', '#F57C00', '#43A047', '#7986CB', '#C6451D', '#FFB300', '#5C6BC0', '#2E7D32'];
+
+            function redrawChart() {
+                const proj = getCurrentProject();
+                if (!proj || typeof Chart === 'undefined') return;
+                const labelCol = parseInt(chartLabelSelect.value, 10);
+                const valueCol = parseInt(chartValueSelect.value, 10);
+                const type = chartTypeSelect.value;
+                if (isNaN(labelCol) || isNaN(valueCol)) return;
+
+                const pairs = proj.rows
+                    .map(r => ({ label: r[labelCol], raw: r[valueCol] }))
+                    .filter(p => String(p.label).trim() !== '' && String(p.raw).trim() !== '' && !isNaN(parseFloat(p.raw)));
+
+                if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+                if (!pairs.length) {
+                    chartCanvas.style.display = 'none';
+                    chartEmptyNote.style.display = 'block';
+                    return;
+                }
+                chartCanvas.style.display = 'block';
+                chartEmptyNote.style.display = 'none';
+
+                const labels = pairs.map(p => p.label);
+                const values = pairs.map(p => parseFloat(p.raw));
+                const isPie = type === 'pie' || type === 'doughnut';
+                const colors = labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
+                const dataset = {
+                    label: proj.columns[valueCol] || 'Value',
+                    data: type === 'scatter'
+                        ? pairs.map((p, i) => ({ x: i, y: values[i] }))
+                        : values,
+                    backgroundColor: isPie ? colors : CHART_COLORS[0],
+                    borderColor: isPie ? colors : CHART_COLORS[0],
+                    borderWidth: type === 'line' ? 2 : 1,
+                    tension: 0.25,
+                };
+
+                chartInstance = new Chart(chartCanvas.getContext('2d'), {
+                    type: type === 'scatter' ? 'scatter' : type,
+                    data: { labels, datasets: [dataset] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: isPie } },
+                        scales: isPie ? {} : { y: { beginAtZero: true } }
+                    }
+                });
             }
 
             function escapeHtml(str) {
@@ -3232,6 +3415,7 @@
             modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(null); });
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal(null);
+                if (e.key === 'Escape' && chartOverlay.classList.contains('open')) closeChartView();
                 if (e.key === 'Enter' && modalOverlay.classList.contains('open') && !isSettingsModalOpen) {
                     const active = document.activeElement;
                     if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) modalConfirmBtn.click();
@@ -4163,6 +4347,12 @@
                 resetDataBtn.addEventListener('click', resetToDefault);
                 exportCsvBtn.addEventListener('click', exportCSV);
                 importCsvBtn.addEventListener('click', () => csvFileInput.click());
+                chartViewBtn.addEventListener('click', openChartView);
+                chartCloseBtn.addEventListener('click', closeChartView);
+                chartOverlay.addEventListener('click', (e) => { if (e.target === chartOverlay) closeChartView(); });
+                chartTypeSelect.addEventListener('change', redrawChart);
+                chartLabelSelect.addEventListener('change', redrawChart);
+                chartValueSelect.addEventListener('change', redrawChart);
                 csvFileInput.addEventListener('change', (e) => {
                     if (e.target.files.length > 0) {
                         importCSV(e.target.files[0]);
@@ -4194,8 +4384,12 @@
                         menuDropdown.classList.remove('open');
                     }
                 });
+                menuDropdown.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) {
+                        setTimeout(() => menuDropdown.classList.remove('open'), 50);
+                    }
+                });
                 menuDropdown.querySelector('[data-menu-action="logout"]').addEventListener('click', () => {
-                    menuDropdown.classList.remove('open');
                     handleLogout();
                 });
 

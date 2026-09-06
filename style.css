@@ -881,6 +881,33 @@
         }
         .menu-dropdown button:hover { background: var(--surface2); }
         .menu-dropdown button i { width: 16px; color: var(--text2); }
+        /* These buttons keep their ids/classes for existing JS + styling
+           elsewhere, but inside the dropdown they should look like plain
+           list items, not toolbar buttons. */
+        .menu-dropdown button.save-btn,
+        .menu-dropdown button.danger,
+        .menu-dropdown button.primary,
+        .menu-dropdown button.success {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            color: var(--text) !important;
+            font-weight: 400 !important;
+            padding: 9px 12px !important;
+        }
+        .menu-dropdown button.save-btn:hover,
+        .menu-dropdown button.danger:hover,
+        .menu-dropdown button.primary:hover,
+        .menu-dropdown button.success:hover {
+            background: var(--surface2) !important;
+            color: var(--text) !important;
+        }
+        .menu-dropdown button.danger i { color: var(--danger); }
+        .menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 2px;
+        }
 
         /* ─── TOOLBAR ─── */
         .toolbar {
@@ -1402,6 +1429,27 @@
             overflow-y: auto;
             flex: 1;
             padding-right: 4px;
+        }
+        .chart-modal {
+            max-width: 720px;
+        }
+        .chart-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 14px 0 16px 0;
+        }
+        .chart-controls .form-group { margin-bottom: 0; }
+        .chart-canvas-wrap {
+            position: relative;
+            height: 360px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+        }
+        @media (max-width: 600px) {
+            .chart-controls { grid-template-columns: 1fr; }
         }
         .modal h2 {
             font-size: 20px;

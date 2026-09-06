@@ -135,6 +135,15 @@
             const exportCsvBtn = $('#exportCsvBtn');
             const importCsvBtn = $('#importCsvBtn');
             const csvFileInput = $('#csvFileInput');
+            const chartViewBtn = $('#chartViewBtn');
+            const chartOverlay = $('#chartOverlay');
+            const chartCloseBtn = $('#chartCloseBtn');
+            const chartTypeSelect = $('#chartTypeSelect');
+            const chartLabelSelect = $('#chartLabelSelect');
+            const chartValueSelect = $('#chartValueSelect');
+            const chartCanvas = $('#chartCanvas');
+            const chartEmptyNote = $('#chartEmptyNote');
+            let chartInstance = null;
             const modalOverlay = $('#modalOverlay');
             const modalTitle = $('#modalTitle');
             const modalSub = $('#modalSub');
@@ -524,6 +533,94 @@
             function getCurrentProject() {
                 if (!currentProjectId || !projects[currentProjectId]) return null;
                 return projects[currentProjectId];
+            }
+
+            // ──── CHART VIEW ────
+            // Builds a live chart from whichever two columns are picked, using
+            // the current file's rows. Works for any file, Grid or Excel.
+            function openChartView() {
+                const proj = getCurrentProject();
+                if (!proj) return;
+                const savedLabel = chartLabelSelect.value;
+                const savedValue = chartValueSelect.value;
+                const optsHtml = proj.columns.map((c, i) => `<option value="${i}">${escapeHtml(c || 'Column ' + (i + 1))}</option>`).join('');
+                chartLabelSelect.innerHTML = optsHtml;
+                chartValueSelect.innerHTML = optsHtml;
+                // Try to keep the previous picks if this file has the same columns;
+                // otherwise default to the first column for labels and the first
+                // numeric-looking column for values.
+                if (savedLabel && Number(savedLabel) < proj.columns.length) {
+                    chartLabelSelect.value = savedLabel;
+                } else {
+                    chartLabelSelect.value = '0';
+                }
+                let defaultValueCol = proj.columns.findIndex((c, i) =>
+                    proj.rows.some(r => r[i] !== '' && !isNaN(parseFloat(r[i])))
+                );
+                if (defaultValueCol === -1) defaultValueCol = proj.columns.length > 1 ? 1 : 0;
+                if (savedValue && Number(savedValue) < proj.columns.length) {
+                    chartValueSelect.value = savedValue;
+                } else {
+                    chartValueSelect.value = String(defaultValueCol);
+                }
+                chartOverlay.classList.add('open');
+                redrawChart();
+            }
+
+            function closeChartView() {
+                chartOverlay.classList.remove('open');
+            }
+
+            const CHART_COLORS = ['#2E75B6', '#F57C00', '#43A047', '#7986CB', '#C6451D', '#FFB300', '#5C6BC0', '#2E7D32'];
+
+            function redrawChart() {
+                const proj = getCurrentProject();
+                if (!proj || typeof Chart === 'undefined') return;
+                const labelCol = parseInt(chartLabelSelect.value, 10);
+                const valueCol = parseInt(chartValueSelect.value, 10);
+                const type = chartTypeSelect.value;
+                if (isNaN(labelCol) || isNaN(valueCol)) return;
+
+                const pairs = proj.rows
+                    .map(r => ({ label: r[labelCol], raw: r[valueCol] }))
+                    .filter(p => String(p.label).trim() !== '' && String(p.raw).trim() !== '' && !isNaN(parseFloat(p.raw)));
+
+                if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+
+                if (!pairs.length) {
+                    chartCanvas.style.display = 'none';
+                    chartEmptyNote.style.display = 'block';
+                    return;
+                }
+                chartCanvas.style.display = 'block';
+                chartEmptyNote.style.display = 'none';
+
+                const labels = pairs.map(p => p.label);
+                const values = pairs.map(p => parseFloat(p.raw));
+                const isPie = type === 'pie' || type === 'doughnut';
+                const colors = labels.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
+                const dataset = {
+                    label: proj.columns[valueCol] || 'Value',
+                    data: type === 'scatter'
+                        ? pairs.map((p, i) => ({ x: i, y: values[i] }))
+                        : values,
+                    backgroundColor: isPie ? colors : CHART_COLORS[0],
+                    borderColor: isPie ? colors : CHART_COLORS[0],
+                    borderWidth: type === 'line' ? 2 : 1,
+                    tension: 0.25,
+                };
+
+                chartInstance = new Chart(chartCanvas.getContext('2d'), {
+                    type: type === 'scatter' ? 'scatter' : type,
+                    data: { labels, datasets: [dataset] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: isPie } },
+                        scales: isPie ? {} : { y: { beginAtZero: true } }
+                    }
+                });
             }
 
             function escapeHtml(str) {
@@ -1325,6 +1422,7 @@
             modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(null); });
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && modalOverlay.classList.contains('open')) closeModal(null);
+                if (e.key === 'Escape' && chartOverlay.classList.contains('open')) closeChartView();
                 if (e.key === 'Enter' && modalOverlay.classList.contains('open') && !isSettingsModalOpen) {
                     const active = document.activeElement;
                     if (active && (active.tagName === 'INPUT' || active.tagName === 'SELECT')) modalConfirmBtn.click();
@@ -2256,6 +2354,12 @@
                 resetDataBtn.addEventListener('click', resetToDefault);
                 exportCsvBtn.addEventListener('click', exportCSV);
                 importCsvBtn.addEventListener('click', () => csvFileInput.click());
+                chartViewBtn.addEventListener('click', openChartView);
+                chartCloseBtn.addEventListener('click', closeChartView);
+                chartOverlay.addEventListener('click', (e) => { if (e.target === chartOverlay) closeChartView(); });
+                chartTypeSelect.addEventListener('change', redrawChart);
+                chartLabelSelect.addEventListener('change', redrawChart);
+                chartValueSelect.addEventListener('change', redrawChart);
                 csvFileInput.addEventListener('change', (e) => {
                     if (e.target.files.length > 0) {
                         importCSV(e.target.files[0]);
@@ -2287,8 +2391,12 @@
                         menuDropdown.classList.remove('open');
                     }
                 });
+                menuDropdown.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) {
+                        setTimeout(() => menuDropdown.classList.remove('open'), 50);
+                    }
+                });
                 menuDropdown.querySelector('[data-menu-action="logout"]').addEventListener('click', () => {
-                    menuDropdown.classList.remove('open');
                     handleLogout();
                 });
 
