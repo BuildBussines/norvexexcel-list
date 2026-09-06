@@ -62,7 +62,15 @@
             let projects = {};
             let currentProjectId = null;
             let searchTerm = '';
-            let currentTheme = 'light';
+            let currentTheme = 'corporate-blue';
+            const THEME_LABELS = {
+                'corporate-blue': 'Corporate Blue',
+                'modern-green': 'Modern Green',
+                'elegant-dark': 'Elegant Dark',
+                'vibrant-orange': 'Vibrant Orange',
+                'minimalist-gray': 'Minimalist Gray',
+                'pastel-soft': 'Pastel Soft'
+            };
             let modalResolve = null;
             let isSettingsModalOpen = false;
             let isSaving = false;
@@ -472,12 +480,12 @@
                         currentTheme = val;
                         applyTheme(val);
                     } else {
-                        currentTheme = 'light';
-                        applyTheme('light');
+                        currentTheme = 'corporate-blue';
+                        applyTheme('corporate-blue');
                     }
                 } catch (_) {
-                    currentTheme = 'light';
-                    applyTheme('light');
+                    currentTheme = 'corporate-blue';
+                    applyTheme('corporate-blue');
                 }
             }
 
@@ -487,10 +495,10 @@
 
             function applyTheme(theme) {
                 document.documentElement.className = '';
-                if (theme !== 'light') {
+                if (theme !== 'corporate-blue') {
                     document.documentElement.classList.add('theme-' + theme);
                 }
-                if (theme === 'dark') {
+                if (theme === 'elegant-dark') {
                     themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
                 } else {
                     themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
@@ -500,11 +508,11 @@
             }
 
             function toggleTheme() {
-                const themes = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themes = ['corporate-blue', 'modern-green', 'elegant-dark', 'vibrant-orange', 'minimalist-gray', 'pastel-soft'];
                 const idx = themes.indexOf(currentTheme);
                 const next = (idx + 1) % themes.length;
                 applyTheme(themes[next]);
-                toast('Theme: ' + themes[next], 'info');
+                toast('Theme: ' + (THEME_LABELS[themes[next]] || themes[next]), 'info');
                 if (isSettingsModalOpen) refreshSettingsModalContent();
             }
 
@@ -1351,7 +1359,7 @@
                         if (theme && theme !== currentTheme) {
                             applyTheme(theme);
                             refreshSettingsModalContent();
-                            toast('Theme: ' + theme, 'info');
+                            toast('Theme: ' + (THEME_LABELS[theme] || theme), 'info');
                         }
                         break;
                     case 'close-settings':
@@ -1378,12 +1386,12 @@
                     `;
                 });
 
-                const themeOptions = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themeOptions = ['corporate-blue', 'modern-green', 'elegant-dark', 'vibrant-orange', 'minimalist-gray', 'pastel-soft'];
                 let themeHtml = '';
                 themeOptions.forEach(t => {
                     const active = t === currentTheme ? 'active-theme' : '';
                     themeHtml += `
-                        <button data-settings-action="set-theme" data-theme="${t}" class="${active}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>
+                        <button data-settings-action="set-theme" data-theme="${t}" class="${active}">${THEME_LABELS[t] || t}</button>
                     `;
                 });
 

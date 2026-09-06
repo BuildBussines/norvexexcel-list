@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Norvex · Projects</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ─── RESET & BASE ─── */
@@ -20,210 +17,213 @@
         }
 
         /* ─── THEME SYSTEM ───
-           Ledger palette: a data-list tool reads best like a well-kept
-           register — cool paper, ink text, one deliberate ink-teal accent
-           (the "verified" color of a stamped ledger entry), gold for
-           flagged/highlighted rows, brick for danger. */
+           Six Excel-style color themes. Each sets the usual surface/text/
+           accent tokens plus a matching button treatment (--btn-radius/
+           --btn-shadow/--btn-shadow-hover) so the "Action Button" shape
+           described for that theme (pill, sharp, bordered, glowing, etc.)
+           carries through automatically wherever buttons are drawn. */
         :root {
-            --bg: #EAEDE3;
+            --bg: #F2F7FB;
             --surface: #ffffff;
-            --surface2: #E1E5D6;
-            --border: #C7CCB8;
-            --text: #1E241F;
-            --text2: #5B6357;
-            --accent: #2F6B5E;
-            --accent-hover: #234F45;
-            --accent-light: #DCEAE4;
-            --danger: #A63D2E;
-            --danger-hover: #832E22;
-            --success: #3F7D3A;
-            --success-hover: #2E5C2A;
-            --heading-bg: #DCEAE4;
-            --heading-color: #234F45;
-            --highlight-row-bg: #F5EBC9;
-            --highlight-col-bg: #FAF3DC;
-            --heading-row-bg: #E3E7D8;
-            --heading-row-color: #1E241F;
-            --radius: 6px;
-            --shadow: 0 1px 2px rgba(30, 36, 32, 0.06), 0 8px 24px rgba(30, 36, 32, 0.06);
+            --surface2: #DCE6F1;
+            --border: #B0C4DE;
+            --text: #333333;
+            --text2: #5A6B7A;
+            --accent: #2E75B6;
+            --accent-hover: #1F4E79;
+            --accent-light: #DCE6F1;
+            --danger: #C0392B;
+            --danger-hover: #A5281B;
+            --success: #2E7D32;
+            --success-hover: #1F5C24;
+            --heading-bg: #1F4E79;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #DCE6F1;
+            --highlight-col-bg: #EAF1F8;
+            --heading-row-bg: #DCE6F1;
+            --heading-row-color: #1F4E79;
+            --radius: 8px;
+            --shadow: 0 4px 20px rgba(31, 78, 121, 0.08);
+            --btn-radius: 4px;
+            --btn-shadow: 0 2px 8px rgba(31, 78, 121, 0.3);
+            --btn-shadow-hover: 0 4px 12px rgba(31, 78, 121, 0.4);
             --transition: 0.2s ease;
-            --font: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --font-display: 'Space Grotesk', -apple-system, 'Segoe UI', sans-serif;
+            --font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            --font-display: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             --tab-bg: transparent;
             --tab-active: var(--surface);
             --tab-border: var(--border);
             --divider-opacity: 0.5;
         }
 
-        .theme-dark {
-            --bg: #0e121b;
-            --surface: #181e2b;
-            --surface2: #232b3d;
-            --border: #334155;
-            --text: #e8edf5;
-            --text2: #9aa6b9;
-            --accent: #4b8cf7;
-            --accent-hover: #6aa0ff;
-            --accent-light: #1e2a44;
-            --danger: #e86966;
-            --danger-hover: #ff7a77;
-            --success: #3da576;
-            --success-hover: #4db886;
+        /* Modern Green — fresh & calm; pill buttons, flat (no shadow) */
+        .theme-modern-green {
+            --bg: #F5F9F5;
+            --surface: #ffffff;
+            --surface2: #E8F0E8;
+            --border: #A5D6A7;
+            --text: #2E2E2E;
+            --text2: #5A7A5C;
+            --accent: #43A047;
+            --accent-hover: #2E7D32;
+            --accent-light: #E8F0E8;
+            --danger: #C0392B;
+            --danger-hover: #A5281B;
+            --success: #1B5E20;
+            --success-hover: #164A1A;
+            --heading-bg: #2E7D32;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #E8F0E8;
+            --highlight-col-bg: #F5F9F5;
+            --heading-row-bg: #E8F0E8;
+            --heading-row-color: #1B5E20;
+            --radius: 14px;
+            --shadow: 0 4px 20px rgba(46, 125, 50, 0.08);
+            --btn-radius: 50px;
+            --btn-shadow: none;
+            --btn-shadow-hover: none;
+        }
+
+        /* Elegant Dark — modern & high contrast; sharp corners, amber glow */
+        .theme-elegant-dark {
+            --bg: #2E2E2E;
+            --surface: #212121;
+            --surface2: #3A3A3A;
+            --border: #555555;
+            --text: #E0E0E0;
+            --text2: #B0B0B0;
+            --accent: #FFB300;
+            --accent-hover: #FFC107;
+            --accent-light: #3A3A3A;
+            --danger: #E57373;
+            --danger-hover: #EF5350;
+            --success: #66BB6A;
+            --success-hover: #81C784;
+            --heading-bg: #212121;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #3A3A3A;
+            --highlight-col-bg: #333333;
+            --heading-row-bg: #3A3A3A;
+            --heading-row-color: #FFB300;
+            --radius: 0px;
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-            --tab-active: #1e2a44;
-            --heading-bg: #1e2a44;
-            --heading-color: #6aa0ff;
-            --highlight-row-bg: #2a2818;
-            --highlight-col-bg: #252518;
-            --heading-row-bg: #1a2035;
-            --heading-row-color: #8ab4f8;
+            --btn-radius: 0px;
+            --btn-shadow: 0 0 16px rgba(255, 179, 0, 0.5);
+            --btn-shadow-hover: 0 0 24px rgba(255, 193, 7, 0.7);
+        }
+        /* Amber buttons need dark text for contrast on this theme */
+        .theme-elegant-dark .lobby-toolbar button.primary,
+        .theme-elegant-dark .project-bar-actions button.primary,
+        .theme-elegant-dark .header-actions button.primary,
+        .theme-elegant-dark .toolbar .btn-group button.primary,
+        .theme-elegant-dark .modal .modal-actions button.primary {
+            color: #212121;
         }
 
-        .theme-ocean {
-            --bg: #e6f0fa;
+        /* Vibrant Orange — energetic; rounded rect, floating shadow */
+        .theme-vibrant-orange {
+            --bg: #FFF8F0;
             --surface: #ffffff;
-            --surface2: #d4e4f7;
-            --border: #8bb3d9;
-            --text: #0b2a40;
-            --text2: #2a577a;
-            --accent: #1a6b8a;
-            --accent-hover: #0f4d66;
-            --accent-light: #cce6f5;
-            --danger: #c24a4a;
-            --danger-hover: #9e3737;
-            --success: #2d8f6f;
-            --success-hover: #1f6a55;
-            --heading-bg: #d4e4f7;
-            --heading-color: #0f4d66;
-            --highlight-row-bg: #fdf8e1;
-            --highlight-col-bg: #fefdf5;
-            --heading-row-bg: #e0ecf8;
-            --heading-row-color: #0b3048;
+            --surface2: #FFE0CC;
+            --border: #FFB74D;
+            --text: #3E2723;
+            --text2: #7A5445;
+            --accent: #F57C00;
+            --accent-hover: #E65100;
+            --accent-light: #FFE0CC;
+            --danger: #C0392B;
+            --danger-hover: #A5281B;
+            --success: #2E7D32;
+            --success-hover: #1F5C24;
+            --heading-bg: #E65100;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #FFE0CC;
+            --highlight-col-bg: #FFF3E8;
+            --heading-row-bg: #FFE0CC;
+            --heading-row-color: #D84315;
+            --radius: 16px;
+            --shadow: 0 4px 20px rgba(230, 81, 0, 0.08);
+            --btn-radius: 8px;
+            --btn-shadow: 0 6px 16px rgba(230, 81, 0, 0.35);
+            --btn-shadow-hover: 0 8px 20px rgba(230, 81, 0, 0.5);
         }
 
-        .theme-forest {
-            --bg: #eaf5ea;
+        /* Minimalist Gray — clean & neutral; bordered outline buttons */
+        .theme-minimalist-gray {
+            --bg: #FAFAFA;
             --surface: #ffffff;
-            --surface2: #d4e8d4;
-            --border: #7aa87a;
-            --text: #1a331a;
-            --text2: #3a663a;
-            --accent: #2d7a2d;
-            --accent-hover: #1f5a1f;
-            --accent-light: #c6e6c6;
-            --danger: #b34a4a;
-            --danger-hover: #8f3737;
-            --success: #3a8f3a;
-            --success-hover: #2a6f2a;
-            --heading-bg: #d4e8d4;
-            --heading-color: #1f5a1f;
-            --highlight-row-bg: #fdfce5;
-            --highlight-col-bg: #fefff5;
-            --heading-row-bg: #dcecdc;
-            --heading-row-color: #1a3a1a;
+            --surface2: #EEEEEE;
+            --border: #BDBDBD;
+            --text: #212121;
+            --text2: #757575;
+            --accent: #616161;
+            --accent-hover: #424242;
+            --accent-light: #EEEEEE;
+            --danger: #C0392B;
+            --danger-hover: #A5281B;
+            --success: #2E7D32;
+            --success-hover: #1F5C24;
+            --heading-bg: #757575;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #EEEEEE;
+            --highlight-col-bg: #F5F5F5;
+            --heading-row-bg: #EEEEEE;
+            --heading-row-color: #424242;
+            --radius: 2px;
+            --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            --btn-radius: 2px;
+            --btn-shadow: none;
+            --btn-shadow-hover: none;
+        }
+        /* This theme's action button is outlined, not filled */
+        .theme-minimalist-gray .lobby-toolbar button.primary,
+        .theme-minimalist-gray .project-bar-actions button.primary,
+        .theme-minimalist-gray .header-actions button.primary,
+        .theme-minimalist-gray .toolbar .btn-group button.primary,
+        .theme-minimalist-gray .modal .modal-actions button.primary,
+        .theme-minimalist-gray .header-actions button.save-btn {
+            background: #FFFFFF;
+            border-color: #757575;
+            color: #424242;
+        }
+        .theme-minimalist-gray .lobby-toolbar button.primary:hover,
+        .theme-minimalist-gray .project-bar-actions button.primary:hover,
+        .theme-minimalist-gray .header-actions button.primary:hover,
+        .theme-minimalist-gray .toolbar .btn-group button.primary:hover,
+        .theme-minimalist-gray .modal .modal-actions button.primary:hover,
+        .theme-minimalist-gray .header-actions button.save-btn:hover {
+            background: #EEEEEE;
+            border-color: #757575;
+            color: #424242;
         }
 
-        .theme-sunset {
-            --bg: #fdf0e6;
+        /* Pastel Soft — friendly & approachable; pill buttons, soft shadow */
+        .theme-pastel-soft {
+            --bg: #F5F5FD;
             --surface: #ffffff;
-            --surface2: #f7dfce;
-            --border: #d9a68b;
-            --text: #4a2a1a;
-            --text2: #7a4a33;
-            --accent: #c46a3a;
-            --accent-hover: #a3542e;
-            --accent-light: #f5d4c4;
-            --danger: #b34a4a;
-            --danger-hover: #8f3737;
-            --success: #6a8f4a;
-            --success-hover: #527a36;
-            --heading-bg: #f7dfce;
-            --heading-color: #a3542e;
-            --highlight-row-bg: #fff8e8;
-            --highlight-col-bg: #fffdf8;
-            --heading-row-bg: #f8e8d8;
-            --heading-row-color: #5a2a10;
+            --surface2: #E8EAF6;
+            --border: #C5CAE9;
+            --text: #333333;
+            --text2: #6B6F9A;
+            --accent: #7986CB;
+            --accent-hover: #5C6BC0;
+            --accent-light: #E8EAF6;
+            --danger: #C0392B;
+            --danger-hover: #A5281B;
+            --success: #3949AB;
+            --success-hover: #2C3A8C;
+            --heading-bg: #5C6BC0;
+            --heading-color: #FFFFFF;
+            --highlight-row-bg: #E8EAF6;
+            --highlight-col-bg: #F5F5FD;
+            --heading-row-bg: #E8EAF6;
+            --heading-row-color: #3949AB;
+            --radius: 14px;
+            --shadow: 0 4px 20px rgba(92, 107, 192, 0.08);
+            --btn-radius: 50px;
+            --btn-shadow: 0 3px 10px rgba(92, 107, 192, 0.3);
+            --btn-shadow-hover: 0 5px 14px rgba(92, 107, 192, 0.45);
         }
-
-        .theme-purple {
-            --bg: #f3eef9;
-            --surface: #ffffff;
-            --surface2: #e4daf0;
-            --border: #b89fd4;
-            --text: #2a1a3a;
-            --text2: #5a3a7a;
-            --accent: #7a4aaa;
-            --accent-hover: #5f378a;
-            --accent-light: #e4d6f0;
-            --danger: #b34a6a;
-            --danger-hover: #8f3753;
-            --success: #4a8f6a;
-            --success-hover: #366f52;
-            --heading-bg: #e4daf0;
-            --heading-color: #5f378a;
-            --highlight-row-bg: #fdf5ff;
-            --highlight-col-bg: #fefafe;
-            --heading-row-bg: #ece0f4;
-            --heading-row-color: #3a1a5a;
-        }
-
-        /* Blueprint: technical drafting-table feel — cool paper, navy ink,
-           drafting blue, monospace headings for a precise/engineered read. */
-        .theme-blueprint {
-            --bg: #EFF3F6;
-            --surface: #ffffff;
-            --surface2: #E1E9EE;
-            --border: #B9C7D1;
-            --text: #16232E;
-            --text2: #55697A;
-            --accent: #1D5FA6;
-            --accent-hover: #154373;
-            --accent-light: #DCEAF7;
-            --danger: #B23A2E;
-            --danger-hover: #8C2C22;
-            --success: #2E7D5B;
-            --success-hover: #235F45;
-            --heading-bg: #DCEAF7;
-            --heading-color: #154373;
-            --highlight-row-bg: #FCEFC7;
-            --highlight-col-bg: #FDF6DE;
-            --heading-row-bg: #E4EBEF;
-            --heading-row-color: #16232E;
-            --radius: 4px;
-            --shadow: 0 1px 2px rgba(22, 35, 46, 0.06), 0 8px 20px rgba(22, 35, 46, 0.05);
-            --font-display: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
-        }
-        .theme-blueprint thead th { letter-spacing: 0; }
-
-        /* Editorial: warm parchment paper, serif headline type, a plum accent
-           (deliberately not the terracotta/blue you'd expect) — a newsroom-
-           register read rather than a SaaS dashboard read. */
-        .theme-editorial {
-            --bg: #F1EEE3;
-            --surface: #ffffff;
-            --surface2: #E8E2D2;
-            --border: #D3C9B0;
-            --text: #2A2118;
-            --text2: #6B5F4E;
-            --accent: #5B3A66;
-            --accent-hover: #432749;
-            --accent-light: #EAE0EE;
-            --danger: #A13A2E;
-            --danger-hover: #7D2C22;
-            --success: #3E7A4C;
-            --success-hover: #2D5B38;
-            --heading-bg: #EAE0EE;
-            --heading-color: #432749;
-            --highlight-row-bg: #F6E3B0;
-            --highlight-col-bg: #FAEFCF;
-            --heading-row-bg: #EDE7D6;
-            --heading-row-color: #2A2118;
-            --radius: 3px;
-            --shadow: 0 1px 2px rgba(42, 33, 24, 0.06), 0 8px 20px rgba(42, 33, 24, 0.05);
-            --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
-        }
-        .theme-editorial .header-actions button,
-        .theme-editorial .lobby-toolbar button { letter-spacing: 0; }
 
         body {
             font-family: var(--font);
@@ -325,15 +325,16 @@
             border: 1px solid var(--accent);
             background: var(--accent);
             color: #fff;
-            border-radius: 8px;
+            border-radius: var(--btn-radius, 8px);
+            box-shadow: var(--btn-shadow, none);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             font-family: var(--font);
             white-space: nowrap;
-            transition: background var(--transition);
+            transition: background var(--transition), box-shadow var(--transition);
         }
-        .lobby-toolbar button.primary:hover { background: var(--accent-hover); }
+        .lobby-toolbar button.primary:hover { background: var(--accent-hover); box-shadow: var(--btn-shadow-hover, none); }
         .lobby-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -695,9 +696,12 @@
             background: var(--accent);
             border-color: var(--accent);
             color: #fff;
+            border-radius: var(--btn-radius, 8px);
+            box-shadow: var(--btn-shadow, none);
         }
         .project-bar-actions button.primary:hover {
             background: var(--accent-hover);
+            box-shadow: var(--btn-shadow-hover, none);
         }
         .project-bar-actions button.danger {
             border-color: var(--danger);
@@ -788,13 +792,12 @@
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--text);
-            border-radius: var(--radius);
+            border-radius: var(--btn-radius, var(--radius));
             font-size: 13px;
             font-weight: 600;
-            letter-spacing: -0.01em;
             cursor: pointer;
             transition: all var(--transition);
-            font-family: var(--font-display);
+            font-family: var(--font);
             white-space: nowrap;
         }
         .header-actions button:hover {
@@ -805,10 +808,13 @@
             background: var(--accent);
             border-color: var(--accent);
             color: #fff;
+            border-radius: var(--btn-radius, var(--radius));
+            box-shadow: var(--btn-shadow, none);
         }
         .header-actions button.primary:hover {
             background: var(--accent-hover);
             border-color: var(--accent-hover);
+            box-shadow: var(--btn-shadow-hover, none);
         }
         .header-actions button.danger {
             border-color: var(--danger);
@@ -832,10 +838,13 @@
             color: #fff;
             font-weight: 600;
             padding: 8px 24px;
+            border-radius: var(--btn-radius, var(--radius));
+            box-shadow: var(--btn-shadow, none);
         }
         .header-actions button.save-btn:hover {
             background: var(--success-hover);
             border-color: var(--success-hover);
+            box-shadow: var(--btn-shadow-hover, none);
         }
         .theme-toggle {
             font-size: 16px;
@@ -919,10 +928,13 @@
             background: var(--accent);
             border-color: var(--accent);
             color: #fff;
+            border-radius: var(--btn-radius, var(--radius));
+            box-shadow: var(--btn-shadow, none);
         }
         .toolbar .btn-group button.primary:hover {
             background: var(--accent-hover);
             border-color: var(--accent-hover);
+            box-shadow: var(--btn-shadow-hover, none);
         }
         .toolbar .btn-group button.danger {
             border-color: var(--danger);
@@ -1035,7 +1047,7 @@
         tbody tr.highlighted-row:hover td {
             background: #fff9c4;
         }
-        .theme-dark tbody tr.highlighted-row:hover td {
+        .theme-elegant tbody tr.highlighted-row:hover td {
             background: #3d3520;
         }
 
@@ -1051,7 +1063,7 @@
         tbody tr:hover td.highlighted-col {
             background: #fffef0;
         }
-        .theme-dark tbody tr:hover td.highlighted-col {
+        .theme-elegant tbody tr:hover td.highlighted-col {
             background: #2d2d18;
         }
 
@@ -1060,7 +1072,7 @@
             background: #fff8d4;
             box-shadow: inset 4px 0 0 0 #f9c74f, inset 0 2px 0 0 #f9c74f;
         }
-        .theme-dark tbody tr.highlighted-row td.highlighted-col {
+        .theme-elegant tbody tr.highlighted-row td.highlighted-col {
             background: #3d3520;
         }
 
@@ -1069,7 +1081,7 @@
             background: #f0f0e0;
             box-shadow: inset 0 2px 0 0 #f9c74f;
         }
-        .theme-dark tbody tr.heading-row td.highlighted-col {
+        .theme-elegant tbody tr.heading-row td.highlighted-col {
             background: #2a2a20;
         }
 
@@ -1120,7 +1132,7 @@
             background: #fff8d4;
             border-radius: 4px;
         }
-        .theme-dark thead th .col-actions button.highlight-col-btn.active-highlight {
+        .theme-elegant thead th .col-actions button.highlight-col-btn.active-highlight {
             background: #3d3520;
         }
         thead th .col-label {
@@ -1218,7 +1230,7 @@
             color: #f9c74f;
             background: #fff8d4;
         }
-        .theme-dark tbody td .row-actions button.active-highlight {
+        .theme-elegant tbody td .row-actions button.active-highlight {
             background: #3d3520;
         }
         .empty-row td {
@@ -1416,7 +1428,7 @@
         .modal .modal-actions button {
             padding: 10px 24px;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--btn-radius, 8px);
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
@@ -1432,10 +1444,13 @@
             background: var(--accent);
             border-color: var(--accent);
             color: #fff;
+            border-radius: var(--btn-radius, var(--radius));
+            box-shadow: var(--btn-shadow, none);
         }
         .modal .modal-actions button.primary:hover {
             background: var(--accent-hover);
             border-color: var(--accent-hover);
+            box-shadow: var(--btn-shadow-hover, none);
         }
         .modal .modal-actions button.danger {
             border-color: var(--danger);
@@ -1871,7 +1886,15 @@
             let projects = {};
             let currentProjectId = null;
             let searchTerm = '';
-            let currentTheme = 'light';
+            let currentTheme = 'corporate-blue';
+            const THEME_LABELS = {
+                'corporate-blue': 'Corporate Blue',
+                'modern-green': 'Modern Green',
+                'elegant-dark': 'Elegant Dark',
+                'vibrant-orange': 'Vibrant Orange',
+                'minimalist-gray': 'Minimalist Gray',
+                'pastel-soft': 'Pastel Soft'
+            };
             let modalResolve = null;
             let isSettingsModalOpen = false;
             let isSaving = false;
@@ -2281,12 +2304,12 @@
                         currentTheme = val;
                         applyTheme(val);
                     } else {
-                        currentTheme = 'light';
-                        applyTheme('light');
+                        currentTheme = 'corporate-blue';
+                        applyTheme('corporate-blue');
                     }
                 } catch (_) {
-                    currentTheme = 'light';
-                    applyTheme('light');
+                    currentTheme = 'corporate-blue';
+                    applyTheme('corporate-blue');
                 }
             }
 
@@ -2296,10 +2319,10 @@
 
             function applyTheme(theme) {
                 document.documentElement.className = '';
-                if (theme !== 'light') {
+                if (theme !== 'corporate-blue') {
                     document.documentElement.classList.add('theme-' + theme);
                 }
-                if (theme === 'dark') {
+                if (theme === 'elegant-dark') {
                     themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
                 } else {
                     themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
@@ -2309,11 +2332,11 @@
             }
 
             function toggleTheme() {
-                const themes = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themes = ['corporate-blue', 'modern-green', 'elegant-dark', 'vibrant-orange', 'minimalist-gray', 'pastel-soft'];
                 const idx = themes.indexOf(currentTheme);
                 const next = (idx + 1) % themes.length;
                 applyTheme(themes[next]);
-                toast('Theme: ' + themes[next], 'info');
+                toast('Theme: ' + (THEME_LABELS[themes[next]] || themes[next]), 'info');
                 if (isSettingsModalOpen) refreshSettingsModalContent();
             }
 
@@ -3160,7 +3183,7 @@
                         if (theme && theme !== currentTheme) {
                             applyTheme(theme);
                             refreshSettingsModalContent();
-                            toast('Theme: ' + theme, 'info');
+                            toast('Theme: ' + (THEME_LABELS[theme] || theme), 'info');
                         }
                         break;
                     case 'close-settings':
@@ -3187,12 +3210,12 @@
                     `;
                 });
 
-                const themeOptions = ['light', 'blueprint', 'editorial', 'dark', 'ocean', 'forest', 'sunset', 'purple'];
+                const themeOptions = ['corporate-blue', 'modern-green', 'elegant-dark', 'vibrant-orange', 'minimalist-gray', 'pastel-soft'];
                 let themeHtml = '';
                 themeOptions.forEach(t => {
                     const active = t === currentTheme ? 'active-theme' : '';
                     themeHtml += `
-                        <button data-settings-action="set-theme" data-theme="${t}" class="${active}">${t.charAt(0).toUpperCase() + t.slice(1)}</button>
+                        <button data-settings-action="set-theme" data-theme="${t}" class="${active}">${THEME_LABELS[t] || t}</button>
                     `;
                 });
 
