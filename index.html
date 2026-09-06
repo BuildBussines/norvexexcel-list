@@ -850,10 +850,46 @@
             font-size: 16px;
             padding: 8px 12px !important;
         }
-        .settings-btn {
+        .menu-wrap {
+            position: relative;
+        }
+        .menu-btn {
             font-size: 16px;
             padding: 8px 12px !important;
         }
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 170px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 6px;
+            z-index: 200;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .menu-dropdown.open { display: flex; }
+        .menu-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            background: none;
+            color: var(--text);
+            font-size: 13px;
+            font-family: var(--font);
+            text-align: left;
+            border-radius: calc(var(--radius) - 2px);
+            cursor: pointer;
+        }
+        .menu-dropdown button:hover { background: var(--surface2); }
+        .menu-dropdown button i { width: 16px; color: var(--text2); }
 
         /* ─── TOOLBAR ─── */
         .toolbar {
@@ -954,6 +990,18 @@
             border-radius: 0 0 var(--radius) var(--radius);
             box-shadow: var(--shadow);
             transition: background var(--transition), border var(--transition);
+        }
+        /* "Grid File" look — evokes graph paper, monospace data entry */
+        .app.filetype-grid .table-wrapper {
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 22px 22px;
+        }
+        .app.filetype-grid .cell-input,
+        .app.filetype-grid .col-name-input,
+        .app.filetype-grid #sheetTitle {
+            font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
         }
         .table-scroll {
             overflow: auto;
@@ -1418,6 +1466,35 @@
             margin-bottom: 0;
             cursor: pointer;
         }
+        .filetype-picker {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .filetype-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 16px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-family: var(--font);
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .filetype-option i { font-size: 20px; color: var(--text2); margin-bottom: 4px; }
+        .filetype-option span { font-size: 13px; font-weight: 600; }
+        .filetype-option small { font-size: 11px; color: var(--text2); }
+        .filetype-option:hover { border-color: var(--accent); }
+        .filetype-option.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+        .filetype-option.selected i,
+        .filetype-option.selected span { color: var(--accent-hover); }
         .modal .modal-actions {
             display: flex;
             gap: 10px;
@@ -1759,14 +1836,20 @@
                     <span class="dot connecting" id="connectionDot"></span>
                     <span id="connectionText">Connecting...</span>
                 </span>
-                <button class="theme-toggle" id="themeToggle" title="Toggle theme"><i class="fas fa-moon"></i></button>
-                <button class="settings-btn" id="settingsBtn" title="Settings"><i class="fas fa-cog"></i></button>
+                <button class="theme-toggle" id="themeToggle" title="Toggle theme" style="display:none;"><i class="fas fa-moon"></i></button>
                 <button id="saveToSupabaseBtn" class="save-btn" title="Save all data to Supabase"><i class="fas fa-cloud-upload-alt"></i> Save to Cloud</button>
                 <button id="savePublicEditsBtn" class="save-btn" style="display:none;" title="Save your edits back to this shared project"><i class="fas fa-cloud-upload-alt"></i> Save changes</button>
                 <button id="resetDataBtn" class="danger"><i class="fas fa-undo-alt"></i> Reset</button>
                 <button id="exportCsvBtn" class="success"><i class="fas fa-file-csv"></i> CSV</button>
                 <button id="importCsvBtn" class="primary"><i class="fas fa-upload"></i> Import</button>
                 <input type="file" id="csvFileInput" accept=".csv" style="display:none" />
+                <div class="menu-wrap" id="menuWrap">
+                    <button class="menu-btn" id="menuBtn" title="Menu"><i class="fas fa-bars"></i></button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <button data-menu-action="settings" id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
+                        <button data-menu-action="logout"><i class="fas fa-sign-out-alt"></i> Log out</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -1862,7 +1945,7 @@
             function dataStorageKey() { return STORAGE_PREFIX + '__' + activeLobbyId; }
             function currentFileStorageKey() { return CURRENT_PROJECT_PREFIX + '__' + activeLobbyId; }
 
-            function createDefaultProject(name) {
+            function createDefaultProject(name, fileType) {
                 const cols = ['Page', 'URL', 'Status', 'Priority'];
                 const rows = [];
                 for (let i = 0; i < 100; i++) {
@@ -1870,6 +1953,7 @@
                 }
                 return {
                     name: name || 'Untitled',
+                    fileType: fileType === 'grid' ? 'grid' : 'excel',
                     title: 'Website Data',
                     columns: cols,
                     rows: rows,
@@ -1948,6 +2032,8 @@
             const lastUpdated = $('#lastUpdated');
             const themeToggle = $('#themeToggle');
             const settingsBtn = $('#settingsBtn');
+            const menuBtn = $('#menuBtn');
+            const menuDropdown = $('#menuDropdown');
             const addRowBtn = $('#addRowBtn');
             const addColBtn = $('#addColBtn');
             const addHeaderBtn = $('#addHeaderBtn');
@@ -2554,8 +2640,10 @@
                 ids.forEach(id => {
                     const proj = projects[id];
                     const active = id === currentProjectId ? 'active' : '';
+                    const typeIcon = proj.fileType === 'grid' ? 'fa-border-all' : 'fa-table';
                     html += `
                         <div class="project-tab ${active}" data-project-id="${id}">
+                            <i class="fas ${typeIcon}" style="font-size:11px; color:var(--text2); margin-right:6px;" title="${proj.fileType === 'grid' ? 'Grid file' : 'Excel file'}"></i>
                             <span class="tab-label">${escapeHtml(proj.name)}</span>
                             <span class="tab-actions">
                                 <button class="rename-tab-btn" data-project-id="${id}" title="Rename"><i class="fas fa-pen"></i></button>
@@ -2602,6 +2690,7 @@
 
                 sheetTitle.value = proj.title || '';
                 sheetTitle.readOnly = isReadOnlyNow();
+                appEl.classList.toggle('filetype-grid', proj.fileType === 'grid');
 
                 const term = searchTerm.trim().toLowerCase();
                 let filteredRows = proj.rows;
@@ -3018,13 +3107,48 @@
                 }
             }
 
-            function addProject() {
+            async function addProject() {
                 if (isReadOnlyNow()) return;
-                const name = prompt('Enter new file name:', 'File ' + (Object.keys(projects).length + 1));
-                if (name === null) return;
-                const trimmed = name.trim() || 'Untitled';
+                const defaultName = 'File ' + (Object.keys(projects).length + 1);
+                const bodyHtml = `
+                    <div class="form-group">
+                        <label>File name</label>
+                        <input type="text" id="newFileNameInput" value="${escapeHtml(defaultName)}" />
+                    </div>
+                    <div class="form-group">
+                        <label>File type</label>
+                        <input type="hidden" id="newFileTypeInput" value="excel" />
+                        <div class="filetype-picker">
+                            <button type="button" class="filetype-option selected" data-filetype="excel">
+                                <i class="fas fa-table"></i>
+                                <span>Excel File</span>
+                                <small>Standard spreadsheet look</small>
+                            </button>
+                            <button type="button" class="filetype-option" data-filetype="grid">
+                                <i class="fas fa-border-all"></i>
+                                <span>Grid File</span>
+                                <small>Grid-paper, ledger style</small>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    const hiddenInput = document.getElementById('newFileTypeInput');
+                    document.querySelectorAll('.filetype-option').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            document.querySelectorAll('.filetype-option').forEach(b => b.classList.remove('selected'));
+                            btn.classList.add('selected');
+                            if (hiddenInput) hiddenInput.value = btn.dataset.filetype;
+                        });
+                    });
+                }, 50);
+
+                const result = await openModal('New File', 'Give it a name and pick a look.', bodyHtml, 'Create', 'primary');
+                if (result === null) return;
+                const [rawName, fileType] = result;
+                const trimmed = (rawName || '').trim() || 'Untitled';
                 const id = generateId();
-                projects[id] = createDefaultProject(trimmed);
+                projects[id] = createDefaultProject(trimmed, fileType === 'grid' ? 'grid' : 'excel');
                 currentProjectId = id;
                 saveProjects();
                 renderAll();
@@ -4059,7 +4183,21 @@
                     if (currentProjectId) deleteProject(currentProjectId);
                 });
 
-                settingsBtn.addEventListener('click', openSettingsModal);
+                settingsBtn.addEventListener('click', () => { menuDropdown.classList.remove('open'); openSettingsModal(); });
+
+                menuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menuDropdown.classList.toggle('open');
+                });
+                document.addEventListener('click', (e) => {
+                    if (menuDropdown.classList.contains('open') && !e.target.closest('#menuWrap')) {
+                        menuDropdown.classList.remove('open');
+                    }
+                });
+                menuDropdown.querySelector('[data-menu-action="logout"]').addEventListener('click', () => {
+                    menuDropdown.classList.remove('open');
+                    handleLogout();
+                });
 
                 document.addEventListener('keydown', (e) => {
                     if (isReadOnlyNow()) return;

@@ -38,7 +38,7 @@
             function dataStorageKey() { return STORAGE_PREFIX + '__' + activeLobbyId; }
             function currentFileStorageKey() { return CURRENT_PROJECT_PREFIX + '__' + activeLobbyId; }
 
-            function createDefaultProject(name) {
+            function createDefaultProject(name, fileType) {
                 const cols = ['Page', 'URL', 'Status', 'Priority'];
                 const rows = [];
                 for (let i = 0; i < 100; i++) {
@@ -46,6 +46,7 @@
                 }
                 return {
                     name: name || 'Untitled',
+                    fileType: fileType === 'grid' ? 'grid' : 'excel',
                     title: 'Website Data',
                     columns: cols,
                     rows: rows,
@@ -124,6 +125,8 @@
             const lastUpdated = $('#lastUpdated');
             const themeToggle = $('#themeToggle');
             const settingsBtn = $('#settingsBtn');
+            const menuBtn = $('#menuBtn');
+            const menuDropdown = $('#menuDropdown');
             const addRowBtn = $('#addRowBtn');
             const addColBtn = $('#addColBtn');
             const addHeaderBtn = $('#addHeaderBtn');
@@ -730,8 +733,10 @@
                 ids.forEach(id => {
                     const proj = projects[id];
                     const active = id === currentProjectId ? 'active' : '';
+                    const typeIcon = proj.fileType === 'grid' ? 'fa-border-all' : 'fa-table';
                     html += `
                         <div class="project-tab ${active}" data-project-id="${id}">
+                            <i class="fas ${typeIcon}" style="font-size:11px; color:var(--text2); margin-right:6px;" title="${proj.fileType === 'grid' ? 'Grid file' : 'Excel file'}"></i>
                             <span class="tab-label">${escapeHtml(proj.name)}</span>
                             <span class="tab-actions">
                                 <button class="rename-tab-btn" data-project-id="${id}" title="Rename"><i class="fas fa-pen"></i></button>
@@ -778,6 +783,7 @@
 
                 sheetTitle.value = proj.title || '';
                 sheetTitle.readOnly = isReadOnlyNow();
+                appEl.classList.toggle('filetype-grid', proj.fileType === 'grid');
 
                 const term = searchTerm.trim().toLowerCase();
                 let filteredRows = proj.rows;
@@ -1194,13 +1200,48 @@
                 }
             }
 
-            function addProject() {
+            async function addProject() {
                 if (isReadOnlyNow()) return;
-                const name = prompt('Enter new file name:', 'File ' + (Object.keys(projects).length + 1));
-                if (name === null) return;
-                const trimmed = name.trim() || 'Untitled';
+                const defaultName = 'File ' + (Object.keys(projects).length + 1);
+                const bodyHtml = `
+                    <div class="form-group">
+                        <label>File name</label>
+                        <input type="text" id="newFileNameInput" value="${escapeHtml(defaultName)}" />
+                    </div>
+                    <div class="form-group">
+                        <label>File type</label>
+                        <input type="hidden" id="newFileTypeInput" value="excel" />
+                        <div class="filetype-picker">
+                            <button type="button" class="filetype-option selected" data-filetype="excel">
+                                <i class="fas fa-table"></i>
+                                <span>Excel File</span>
+                                <small>Standard spreadsheet look</small>
+                            </button>
+                            <button type="button" class="filetype-option" data-filetype="grid">
+                                <i class="fas fa-border-all"></i>
+                                <span>Grid File</span>
+                                <small>Grid-paper, ledger style</small>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    const hiddenInput = document.getElementById('newFileTypeInput');
+                    document.querySelectorAll('.filetype-option').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            document.querySelectorAll('.filetype-option').forEach(b => b.classList.remove('selected'));
+                            btn.classList.add('selected');
+                            if (hiddenInput) hiddenInput.value = btn.dataset.filetype;
+                        });
+                    });
+                }, 50);
+
+                const result = await openModal('New File', 'Give it a name and pick a look.', bodyHtml, 'Create', 'primary');
+                if (result === null) return;
+                const [rawName, fileType] = result;
+                const trimmed = (rawName || '').trim() || 'Untitled';
                 const id = generateId();
-                projects[id] = createDefaultProject(trimmed);
+                projects[id] = createDefaultProject(trimmed, fileType === 'grid' ? 'grid' : 'excel');
                 currentProjectId = id;
                 saveProjects();
                 renderAll();
@@ -2235,7 +2276,21 @@
                     if (currentProjectId) deleteProject(currentProjectId);
                 });
 
-                settingsBtn.addEventListener('click', openSettingsModal);
+                settingsBtn.addEventListener('click', () => { menuDropdown.classList.remove('open'); openSettingsModal(); });
+
+                menuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    menuDropdown.classList.toggle('open');
+                });
+                document.addEventListener('click', (e) => {
+                    if (menuDropdown.classList.contains('open') && !e.target.closest('#menuWrap')) {
+                        menuDropdown.classList.remove('open');
+                    }
+                });
+                menuDropdown.querySelector('[data-menu-action="logout"]').addEventListener('click', () => {
+                    menuDropdown.classList.remove('open');
+                    handleLogout();
+                });
 
                 document.addEventListener('keydown', (e) => {
                     if (isReadOnlyNow()) return;

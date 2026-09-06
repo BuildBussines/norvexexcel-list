@@ -841,10 +841,46 @@
             font-size: 16px;
             padding: 8px 12px !important;
         }
-        .settings-btn {
+        .menu-wrap {
+            position: relative;
+        }
+        .menu-btn {
             font-size: 16px;
             padding: 8px 12px !important;
         }
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 170px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 6px;
+            z-index: 200;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .menu-dropdown.open { display: flex; }
+        .menu-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 9px 12px;
+            border: none;
+            background: none;
+            color: var(--text);
+            font-size: 13px;
+            font-family: var(--font);
+            text-align: left;
+            border-radius: calc(var(--radius) - 2px);
+            cursor: pointer;
+        }
+        .menu-dropdown button:hover { background: var(--surface2); }
+        .menu-dropdown button i { width: 16px; color: var(--text2); }
 
         /* ─── TOOLBAR ─── */
         .toolbar {
@@ -945,6 +981,18 @@
             border-radius: 0 0 var(--radius) var(--radius);
             box-shadow: var(--shadow);
             transition: background var(--transition), border var(--transition);
+        }
+        /* "Grid File" look — evokes graph paper, monospace data entry */
+        .app.filetype-grid .table-wrapper {
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 22px 22px;
+        }
+        .app.filetype-grid .cell-input,
+        .app.filetype-grid .col-name-input,
+        .app.filetype-grid #sheetTitle {
+            font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
         }
         .table-scroll {
             overflow: auto;
@@ -1409,6 +1457,35 @@
             margin-bottom: 0;
             cursor: pointer;
         }
+        .filetype-picker {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .filetype-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 16px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-family: var(--font);
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .filetype-option i { font-size: 20px; color: var(--text2); margin-bottom: 4px; }
+        .filetype-option span { font-size: 13px; font-weight: 600; }
+        .filetype-option small { font-size: 11px; color: var(--text2); }
+        .filetype-option:hover { border-color: var(--accent); }
+        .filetype-option.selected {
+            border-color: var(--accent);
+            background: var(--accent-light);
+        }
+        .filetype-option.selected i,
+        .filetype-option.selected span { color: var(--accent-hover); }
         .modal .modal-actions {
             display: flex;
             gap: 10px;
